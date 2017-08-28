@@ -1,0 +1,108 @@
+rosmsg info geometry_msgs/PoseStamped
+std_msgs/Header header
+  uint32 seq
+  time stamp
+  string frame_id
+geometry_msgs/Pose pose
+  geometry_msgs/Point position
+    float64 x
+    float64 y
+    float64 z
+  geometry_msgs/Quaternion orientation
+    float64 x
+    float64 y
+    float64 z
+    float64 w
+
+Initial Pos:
+---
+header: 
+  seq: 462
+  stamp: 
+    secs: 1503705765
+    nsecs: 449620008
+  frame_id: world
+pose: 
+  position: 
+    x: 1131.22
+    y: 1183.27
+    z: 0.1069651
+  orientation: 
+    x: 0.0
+    y: 0.0
+    z: 0.0436201197059
+    w: 0.999048189607
+
+Example Waypoint:
+  - 
+    pose: 
+      header: 
+        seq: 0
+        stamp: 
+          secs: 0
+          nsecs:         0
+        frame_id: ''
+      pose: 
+        position: 
+          x: 889.6
+          y: 1128.83
+          z: 0.0
+        orientation: 
+          x: 0.0
+          y: 0.0
+          z: 0.0
+          w: 1.0
+    twist: 
+      header: 
+        seq: 0
+        stamp: 
+          secs: 0
+          nsecs:         0
+        frame_id: ''
+      twist: 
+        linear: 
+          x: 11.1112
+          y: 0.0
+          z: 0.0
+        angular: 
+          x: 0.0
+          y: 0.0
+          z: 0.0
+
+rosmsg info Lane
+[styx_msgs/Lane]:
+std_msgs/Header header
+  uint32 seq
+  time stamp
+  string frame_id
+styx_msgs/Waypoint[] waypoints
+  geometry_msgs/PoseStamped pose
+    std_msgs/Header header
+      uint32 seq
+      time stamp
+      string frame_id
+    geometry_msgs/Pose pose
+      geometry_msgs/Point position
+        float64 x
+        float64 y
+        float64 z
+      geometry_msgs/Quaternion orientation
+        float64 x
+        float64 y
+        float64 z
+        float64 w
+  geometry_msgs/TwistStamped twist
+    std_msgs/Header header
+      uint32 seq
+      time stamp
+      string frame_id
+    geometry_msgs/Twist twist
+      geometry_msgs/Vector3 linear
+        float64 x
+        float64 y
+        float64 z
+      geometry_msgs/Vector3 angular
+        float64 x
+        float64 y
+        float64 z
+
