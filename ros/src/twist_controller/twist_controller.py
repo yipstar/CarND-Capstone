@@ -36,13 +36,24 @@ class TwistController(object):
         z = np.polyfit(x_vals, y_vals, 3)
         p = np.poly1d(z)
 
+        # current_car_y = current_pose.pose.position.y
+        # target_y = p(x_vals[0])
+        # cross_track_error = target_y - current_car_y
+
+        current_car_x = current_pose.pose.position.x
         current_car_y = current_pose.pose.position.y
-        target_y = p(x_vals[0])
-
+        target_y = p(current_car_x)
         cross_track_error = target_y - current_car_y
-        rospy.logwarn('current_car_y, target_y, cross_track_error: %s, %s, %s', current_car_y, target_y, cross_track_error)
 
-        sample_time = 1 # ???
+        # current_car_x = current_pose.pose.position.x
+        # target_y = y_vals[0]
+        # car_fitted_y = p(current_car_x)
+        # cross_track_error = target_y - car_fitted_y
+
+        rospy.logwarn('cross_track_error: %s', cross_track_error)
+
+        # sample_time = .02 # ??? Match Rate in dbw_node?
+        sample_time = 1
 
         steer = self.pid_steering_controller.step(cross_track_error, sample_time)
 
