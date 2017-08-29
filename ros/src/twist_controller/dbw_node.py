@@ -8,6 +8,9 @@ import math
 
 from twist_controller import TwistController
 
+from styx_msgs.msg import Lane, Waypoint
+from geometry_msgs.msg import PoseStamped
+
 '''
 You can build this node only after you have built (or partially built) the `waypoint_updater` node.
 
@@ -61,18 +64,28 @@ class DBWNode(object):
         # TODO: Subscribe to all the topics you need to
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
+        rospy.Subscriber('/final_waypoints', Lane, self.final_waypoints_cb)
+        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
 
         self.current_proposed_twist = None
-        self.current_linear_velocity = None
+        self.current_velocity = None
+        self.final_waypoints = None
+        self.current_pose = None
 
         self.loop()
 
     def twist_cb(self, msg):
         # rospy.loginfo('twist cmd received')
-        self.current_proposed_twist = msg
+        self.current_proposed_twist = msg.twist
 
     def current_velocity_cb(self, msg):
-        self.current_linear_velocity = msg.twist.linear.x
+        self.current_velocity = msg.twist
+
+    def final_waypoints_cb(self, msg):
+        self.final_waypoints = msg
+
+    def pose_cb(self, msg):
+        self.current_pose = msg
 
     def loop(self):
         rate = rospy.Rate(50) # 50Hz
@@ -83,13 +96,9 @@ class DBWNode(object):
             #TODO: Get predicted throttle, brake, and steering using `twist_controller`
             #You should only publish the control commands if dbw is enabled
 
-            if self.current_proposed_twist and self.current_linear_velocity:
-                proposed_linear_velocity = self.current_proposed_twist.twist.linear.x
-                proposed_angular_velocity = self.current_proposed_twist.twist.angular.z
+            if self.current_proposed_twist and self.current_velocity and self.final_waypoints and self.current_pose:
 
-                current_linear_velocity = self.current_linear_velocity
-
-                throttle, brake, steering = self.controller.control(proposed_linear_velocity, proposed_angular_velocity, current_linear_velocity)
+                throttle, brake, steering = self.controller.control(self.current_velocity, self.current_proposed_twist, self.final_waypoints, self.current_pose)
                 # , dbw_enabled
 
                 if dbw_enabled:
@@ -107,6 +116,8 @@ class DBWNode(object):
         scmd = SteeringCmd()
         scmd.enable = True
         scmd.steering_wheel_angle_cmd = steer
+        # scmd.steering_wheel_angle_cmd = - (math.pi / 8) # radians
+        # scmd.steering_wheel_angle_velocity = 5.0 # ???
         self.steer_pub.publish(scmd)
 
         bcmd = BrakeCmd()
