@@ -14,20 +14,24 @@ class PID(object):
 
         self.int_val = self.last_int_val = self.last_error = 0.
 
+        self.i_error = 0
+
     def reset(self):
         self.int_val = 0.0
         self.last_int_val = 0.0
 
     def step(self, error, sample_time):
-        self.last_int_val = self.int_val
 
-        integral = self.int_val + (error * sample_time)
-        rospy.logwarn('integral: %s', integral)
+        d_error = (error - self.last_error)
+        p_error = error
+        i_error = self.i_error + error
+        self.i_error = i_error
 
-        derivative = (error - self.last_error) / sample_time
-        rospy.logwarn('derivative: %s', derivative)
+        rospy.logwarn('p_error: %s', p_error)
+        rospy.logwarn('d_error: %s', d_error)
+        rospy.logwarn('i_error: %s', i_error)
 
-        y = self.kp * error + self.ki * self.int_val + self.kd * derivative
+        y = self.kp * p_error + self.ki * i_error + self.kd * d_error;
         val = max(self.min, min(y, self.max))
 
         rospy.logwarn('val: %s', val)
@@ -37,9 +41,9 @@ class PID(object):
         elif val < self.min:
             val = self.min
         else:
-            self.int_val = integral
+            self.int_val = i_error
 
-        self.last_error = error
+        # self.last_error = error
 
         rospy.logwarn('val: %s', val)
 

@@ -18,7 +18,19 @@ class TwistController(object):
 
         # self.pid_steering_controller = PID(.5, .0001, 4, -max_steer_angle, max_steer_angle)
 
-        self.pid_steering_controller = PID(0.071769, 0.00411344, 0.974954, -max_steer_angle, max_steer_angle)
+        # max_steer_angle = 3.0
+
+        # self.pid_steering_controller = PID(0.071769, 0.00411344, 0.974954, -max_steer_angle, max_steer_angle)
+
+        # self.pid_steering_controller = PID(.2, .0001, .5, -max_steer_angle, max_steer_angle)
+
+        self.pid_steering_controller = PID(.5, .005, 1, -max_steer_angle, max_steer_angle)
+
+        # self.pid_steering_controller = PID(.125, 0.0005, .2, -max_steer_angle, max_steer_angle)
+
+        self.change_lane_steering_controller = PID(.2, 0, 0, -2.0, 2.0)
+
+        self.cycle = 0
 
     def control(self, current_velocity, proposed_velocity, final_waypoints, current_pose):
         # TODO: Change the arg, kwarg list to suit your needs
@@ -39,25 +51,45 @@ class TwistController(object):
         current_car_y = current_pose.pose.position.y
 
         # fit 3rd degree poly
-        # z = np.polyfit(x_vals, y_vals, 3)
-        # p = np.poly1d(z)
-        # target_y = p(current_car_x)
-        # cross_track_error = target_y - current_car_y
+        z = np.polyfit(x_vals, y_vals, 3)
+        p = np.poly1d(z)
+        target_y = p(current_car_x)
+        cross_track_error = target_y - current_car_y
 
         # fit a spline
-        tck = interpolate.splrep(x_vals, y_vals)
-        target_y = interpolate.splev(current_car_x, tck, der=0)
-        cross_track_error = target_y - current_car_y
+        # tck = interpolate.splrep(x_vals[0:100], y_vals[0:100])
+        # target_y = interpolate.splev(current_car_x, tck, der=0)
+        # cross_track_error = target_y - current_car_y
+
+        # sample_time = .02 # ??? Match Rate in dbw_node?
+        sample_time = 1
+
         rospy.logwarn('cross_track_error: %s', cross_track_error)
 
-        # if (abs(cross_track_error) > 0.3):
-            # self.pid_steering_controller.reset()
+        # clear the integral component every .5 seconds
+        if (self.cycle % 10 == 1):
+            self.pid_steering_controller.reset()
 
-        sample_time = .02 # ??? Match Rate in dbw_node?
-        # sample_time = 1
+        # TODO: if cross_track_error > 7.0 then we have a lane change
+
+        # if (abs(cross_track_error) > 15.0):
+        #     rospy.logwarn('changing lane')
+        #     steer = self.change_lane_steering_controller.step(cross_track_error, sample_time)
+
+        #     # rospy.signal_shutdown("Possible Lane Change")
+        # else:
+
+        # if (abs(cross_track_error) > 15.0):
+        #     rospy.signal_shutdown("Possible Lane Change")
 
         steer = self.pid_steering_controller.step(cross_track_error, sample_time)
+
         rospy.logwarn('steer: %s', steer)
+        rospy.logwarn('car_y: %s', current_car_y)
+        rospy.logwarn('target_y: %s', target_y)
+
+        # if (abs(cross_track_error) > 9.0):
+
 
         throttle = 10
         brake = 0
@@ -65,6 +97,8 @@ class TwistController(object):
 
         # steer = angular_velocity
         # steer = -(math.pi / 16)
+
+        self.cycle += 1
 
         return throttle, brake, steer
         # return 1., 0., 0.
