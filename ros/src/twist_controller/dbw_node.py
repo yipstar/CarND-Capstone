@@ -99,7 +99,6 @@ class DBWNode(object):
             if self.current_proposed_twist and self.current_velocity and self.final_waypoints and self.current_pose:
 
                 throttle, brake, steering = self.controller.control(self.current_velocity, self.current_proposed_twist, self.final_waypoints, self.current_pose)
-                # , dbw_enabled
 
                 if dbw_enabled:
                     self.publish(throttle, brake, steering)

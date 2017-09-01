@@ -64,8 +64,6 @@ class TwistController(object):
         # sample_time = .02 # ??? Match Rate in dbw_node?
         sample_time = 1
 
-        rospy.logwarn('cross_track_error: %s', cross_track_error)
-
         # clear the integral component every .5 seconds
         if (self.cycle % 10 == 1):
             self.pid_steering_controller.reset()
@@ -84,9 +82,11 @@ class TwistController(object):
 
         steer = self.pid_steering_controller.step(cross_track_error, sample_time)
 
-        rospy.logwarn('steer: %s', steer)
-        rospy.logwarn('car_y: %s', current_car_y)
-        rospy.logwarn('target_y: %s', target_y)
+        if (abs(cross_track_error) > 3.0):
+            rospy.logwarn('cross_track_error: %s', cross_track_error)
+            rospy.logwarn('steer: %s', steer)
+            rospy.logwarn('car_y: %s', current_car_y)
+            rospy.logwarn('target_y: %s', target_y)
 
         # if (abs(cross_track_error) > 9.0):
 

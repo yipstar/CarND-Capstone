@@ -22,15 +22,15 @@ class PID(object):
         self.last_int_val = self.int_val
 
         integral = self.int_val + (error * sample_time)
-        rospy.logwarn('integral: %s', integral)
+        # rospy.logwarn('integral: %s', integral)
 
         derivative = (error - self.last_error) / sample_time
-        rospy.logwarn('derivative: %s', derivative)
+        # rospy.logwarn('derivative: %s', derivative)
 
         y = self.kp * error + self.ki * self.int_val + self.kd * derivative
         val = max(self.min, min(y, self.max))
 
-        rospy.logwarn('val: %s', val)
+        # rospy.logwarn('val: %s', val)
 
         if val > self.max:
             val = self.max
@@ -41,6 +41,6 @@ class PID(object):
 
         self.last_error = error
 
-        rospy.logwarn('val: %s', val)
+        # rospy.logwarn('val: %s', val)
 
         return val
