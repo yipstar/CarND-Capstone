@@ -1,0 +1,66 @@
+---
+title: "WaypointEDA"
+author: "Bin Liu"
+html_document: 
+    keep_md: yes
+    fig_width: 6
+    fig_height: 4   
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Load all of the packages that you end up using
+# in your analysis in this code chunk.
+
+# Notice that the parameter "echo" was set to FALSE for this code chunk.
+# This prevents the code from displaying in the knitted HTML output.
+# You should set echo=FALSE for all code chunks in your file.
+library(dplyr)
+library(ggplot2)
+library(GGally)
+library(tidyr)
+library(plotly)
+library(lubridate)
+library(gridExtra)
+library(knitr)
+setwd("D:/udacity/carnd/term3/T3P3/analysis")
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Load wayPoint data  
+wp_yaw_cons.df <- read.csv("wp_yaw_const.txt",header = FALSE,sep=",")
+library(plyr)
+
+wpxy <-  wp_yaw_cons.df[,c("V1","V2")]
+nodisplay <- rename(wpxy , c("V1"="x", "V2"="y"))
+
+
+# Load traffic light position (from traffic_light_config.py)
+tl.df <- read.csv("tl.txt",header = TRUE,sep=",")
+
+# draw map
+p <-ggplot(data = wpxy, aes(x = wpxy$V1, y = wpxy$V2)) +
+        geom_point(shape = ".", alpha = 1/5) +
+        xlab("x") +
+        ylab("y") +
+        ggtitle("Road map of Waypoints")  +
+        theme(plot.title = element_text(hjust = 0.5))  
+
+# draw start point
+x <- 909.48
+y <- 1128.67
+startp.df <- data.frame(cbind(x,y))
+p <- p + geom_point(data=startp.df,aes(x,y),size =5, col ="green",fill = "white", stroke = 5, shape = 1)
+
+# draw traffic light 
+p <- p + geom_point(data=tl.df,aes(x,y),size =2, col ="red",fill = "white", stroke = 2, shape = 25)
+
+# display map
+p 
+```
