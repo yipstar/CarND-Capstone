@@ -65,11 +65,13 @@ class DBWNode(object):
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
         rospy.Subscriber('/final_waypoints', Lane, self.final_waypoints_cb)
+        rospy.Subscriber('/curve_ref_waypoints', Lane, self.curve_ref_waypoints_cb)
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
 
         self.current_proposed_twist = None
         self.current_velocity = None
         self.final_waypoints = None
+        self.curve_ref_waypoints = None
         self.current_pose = None
 
         self.loop()
@@ -83,6 +85,9 @@ class DBWNode(object):
 
     def final_waypoints_cb(self, msg):
         self.final_waypoints = msg
+
+    def curve_ref_waypoints_cb(self, msg):
+        self.curve_ref_waypoints = msg
 
     def pose_cb(self, msg):
         self.current_pose = msg
@@ -98,7 +103,7 @@ class DBWNode(object):
 
             if self.current_proposed_twist and self.current_velocity and self.final_waypoints and self.current_pose:
 
-                throttle, brake, steering = self.controller.control(self.current_velocity, self.current_proposed_twist, self.final_waypoints, self.current_pose)
+                throttle, brake, steering = self.controller.control(self.current_velocity, self.current_proposed_twist, self.final_waypoints, self.curve_ref_waypoints, self.current_pose)
 
                 if dbw_enabled:
                     self.publish(throttle, brake, steering)

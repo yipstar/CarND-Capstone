@@ -34,8 +34,11 @@ class WaypointUpdater(object):
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
 
-
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
+
+        self.curve_ref_waypoints_pub = rospy.Publisher('curve_ref_waypoints', Lane, queue_size=1)
+
+        # self.spline_pub = rospy.Publisher('spline', Lane, queue_size=1)
 
         # TODO: Add other member variables you need below
         self.current_pose = None
@@ -61,6 +64,8 @@ class WaypointUpdater(object):
 
             # rospy.logwarn('next_wp_index %s: ', next_wp_index)
             waypoints = self.waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS]
+
+            curve_ref_waypoints = self.waypoints[next_wp_index - 10: next_wp_index + LOOKAHEAD_WPS]
 
             last_wp = self.waypoints[next_wp_index - 1]
 
@@ -88,6 +93,13 @@ class WaypointUpdater(object):
             lane.header.stamp = rospy.Time(0)
             lane.waypoints = waypoints
             self.final_waypoints_pub.publish(lane)
+
+            lane = Lane()
+            lane.header.frame_id = '/world'
+            lane.header.stamp = rospy.Time(0)
+            lane.waypoints = waypoints
+            self.curve_ref_waypoints_pub.publish(lane)
+
 
     def waypoints_cb(self, waypoints):
         # TODO: Implement
