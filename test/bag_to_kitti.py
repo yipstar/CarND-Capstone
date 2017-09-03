@@ -27,6 +27,9 @@ from scipy.spatial import kdtree
 from scipy import stats
 
 
+sys.path += ['/media/sf_udacity/CarND-Capstone-binliu/ros/src/tl_detector']
+from traffic_light_config import config
+
 # Bag message timestamp source
 TS_SRC_PUB = 0
 TS_SRC_REC = 1
@@ -47,10 +50,17 @@ FRONT_TO_LIDAR = [-1.0922, 0, -0.0508]
 # so using that value here.
 BASE_LINK_TO_LIDAR_PED = [1.9, 0., 1.6]
 
-CAMERA_COLS = ["timestamp", "width", "height", "frame_id", "filename"]
+# CAMERA_COLS = ["timestamp", "width", "height", "frame_id", "filename"]
+CAMERA_COLS = ["timestamp", "width", "height", "frame_id", "filename","light","state"]
 GPS_COLS = ["timestamp", "lat", "long", "alt"]
 POS_COLS = ["timestamp", "tx", "ty", "tz", "rx", "ry", "rz"]
 
+#added by BinLiu 170903
+_PREV_LIGHT = -1    
+_PREV_STATE = 4    
+_CURRENT_POSE = (-1,-1)
+# _CURRENT_LIGHT = -1
+#end add 
 
 def obs_name_from_topic(topic):
     return topic.split('/')[2]
@@ -68,9 +78,10 @@ def camera2dict(timestamp, msg, write_results, camera_dict):
     if write_results:
         camera_dict["width"].append(write_results['width'] if 'width' in write_results else msg.width)
         camera_dict['height'].append(write_results['height'] if 'height' in write_results else msg.height)
-        camera_dict["frame_id"].append(msg.header.frame_id)
+        # camera_dict["frame_id"].append(msg.header.frame_id)
         camera_dict["filename"].append(write_results['filename'])
-
+        camera_dict["light"].append(0 if _PREV_LIGHT == -1 else _PREV_LIGHT)        
+        camera_dict["state"].append(_PREV_STATE)                
 
 def gps2dict(timestamp, msg, gps_dict):
     gps_dict["timestamp"].append(timestamp)
@@ -81,41 +92,51 @@ def gps2dict(timestamp, msg, gps_dict):
 
 def pose2dict(timestamp, msg, pose_dict):
     pose_dict["timestamp"].append(timestamp)
-    pose_dict["tx"].append(msg.pose.position.x)
-    pose_dict["ty"].append(msg.pose.position.y)
-    pose_dict["tz"].append(msg.pose.position.z)
-    rotq = kd.Rotation.Quaternion(
-        msg.pose.orientation.x,
-        msg.pose.orientation.y,
-        msg.pose.orientation.z,
-        msg.pose.orientation.w)
-    rot_xyz = rotq.GetRPY()
-    pose_dict["rx"].append(rot_xyz[0])
-    pose_dict["ry"].append(rot_xyz[1])
-    pose_dict["rz"].append(rot_xyz[2])
+    pose_dict["x"].append(msg.pose.position.x)
+    pose_dict["y"].append(msg.pose.position.y)
+    # pose_dict["tz"].append(msg.pose.position.z)
+    # rotq = kd.Rotation.Quaternion(
+    #     msg.pose.orientation.x,
+    #     msg.pose.orientation.y,
+    #     msg.pose.orientation.z,
+    #     msg.pose.orientation.w)
+    # rot_xyz = rotq.GetRPY()
+    # pose_dict["rx"].append(rot_xyz[0])
+    # pose_dict["ry"].append(rot_xyz[1])
+    # pose_dict["rz"].append(rot_xyz[2])
+    # print(pose_dict)
+
+def tl2dict(timestamp, tl, tl_dict):
+    tl_dict["timestamp"].append(timestamp)
+    # tl_dict["tx"].append(tf.translation.x)
+    # tf_dict["ty"].append(tf.translation.y)
+    tl_dict["nlight"].append(_PREV_LIGHT)    
+    tl_dict["state"].append(tl.state)
+    global _PREV_STATE      
+    _PREV_STATE = tl.state
+    # print(tl_dict)
+
+# def tf2dict(timestamp, tf, tf_dict):
+#     tf_dict["timestamp"].append(timestamp)
+#     tf_dict["tx"].append(tf.translation.x)
+#     tf_dict["ty"].append(tf.translation.y)
+#     tf_dict["tz"].append(tf.translation.z)
+#     rotq = kd.Rotation.Quaternion(
+#         tf.rotation.x,
+#         tf.rotation.y,
+#         tf.rotation.z,
+#         tf.rotation.w)
+#     rot_xyz = rotq.GetRPY()
+#     tf_dict["rx"].append(rot_xyz[0])
+#     tf_dict["ry"].append(rot_xyz[1])
+#     tf_dict["rz"].append(rot_xyz[2])
 
 
-def tf2dict(timestamp, tf, tf_dict):
-    tf_dict["timestamp"].append(timestamp)
-    tf_dict["tx"].append(tf.translation.x)
-    tf_dict["ty"].append(tf.translation.y)
-    tf_dict["tz"].append(tf.translation.z)
-    rotq = kd.Rotation.Quaternion(
-        tf.rotation.x,
-        tf.rotation.y,
-        tf.rotation.z,
-        tf.rotation.w)
-    rot_xyz = rotq.GetRPY()
-    tf_dict["rx"].append(rot_xyz[0])
-    tf_dict["ry"].append(rot_xyz[1])
-    tf_dict["rz"].append(rot_xyz[2])
-
-
-def imu2dict(timestamp, msg, imu_dict):
-    imu_dict["timestamp"].append(timestamp)
-    imu_dict["ax"].append(msg.linear_acceleration.x)
-    imu_dict["ay"].append(msg.linear_acceleration.y)
-    imu_dict["az"].append(msg.linear_acceleration.z)
+# def imu2dict(timestamp, msg, imu_dict):
+#     imu_dict["timestamp"].append(timestamp)
+#     imu_dict["ax"].append(msg.linear_acceleration.x)
+#     imu_dict["ay"].append(msg.linear_acceleration.y)
+#     imu_dict["az"].append(msg.linear_acceleration.z)
 
 
 def get_yaw(p1, p2):
@@ -579,6 +600,35 @@ def process_pose_data(
     return tracklets
 
 
+#Added by BinLiu 170903
+
+def distance(p1, p2):
+    # x, y = p1.x - p2.x, p1.y - p2.y
+    x, y = p1[0] - p2[0], p1[1] - p2[1]
+    return math.sqrt(x*x + y*y )
+
+def get_closest_light(pose):
+    dLen = 1000000
+    nLight = 0
+    count = 0
+    for light in config.light_positions:    
+        dDist = distance(pose, light)            
+        if dDist < dLen:  
+            if nLight >= 0 and nLight <=3:
+                if pose[0] > light[0]: pass
+            elif nLight >= 4 and nLight <=5:
+                if pose[0] < light[0]: pass
+            elif nLight >= 6 and nLight <=7:
+                if pose[1] < light[1]: pass
+
+            dLen = dDist                
+            nLight = count                
+        count +=1
+    return nLight
+
+#End add  
+
+
 def main():
     parser = argparse.ArgumentParser(description='Convert rosbag to images and csv.')
     parser.add_argument('-o', '--outdir', type=str, nargs='?', default='./output',
@@ -625,7 +675,7 @@ def main():
     # filter_topics = CAMERA_TOPICS + CAP_FRONT_RTK_TOPICS + CAP_REAR_RTK_TOPICS \
     #     + CAP_FRONT_GPS_TOPICS + CAP_REAR_GPS_TOPICS
 
-    filter_topics = CAMERA_TOPICS + [TF_LIGHTS_TOPIC]   
+    filter_topics = CAMERA_TOPICS + [TF_LIGHTS_TOPIC]  + [CAR_POSE_TOPIC] 
 
     # FIXME hard coded obstacles
     # The original intent was to scan bag info for obstacles and populate dynamically in combination
@@ -668,6 +718,9 @@ def main():
         stats_acc = defaultdict(int)
 
         def _process_msg(topic, msg, ts_recorded, stats):
+            global _PREV_LIGHT
+            global _CURRENT_POSE
+            global _PREV_STATE               
             if topic == '/tf':
                 timestamp = msg.transforms[0].header.stamp.to_nsec()
             else:
@@ -678,20 +731,41 @@ def main():
                 timestamp = ts_recorded.to_nsec()
 
             if topic in CAMERA_TOPICS:
+                # write_results = {}
+                # if include_images:
+                #     write_results = image_bridge.write_image(camera_outdir, msg,ts_recorded, fmt=img_format)
+                #     write_results['filename'] = os.path.relpath(write_results['filename'], outdir)
+                # camera2dict(timestamp, msg, write_results, cap_data['camera'])
+                # stats['img_count'] += 1
+                # stats['msg_count'] += 1
+
                 write_results = {}
                 if include_images:
-                    write_results = image_bridge.write_image(camera_outdir, msg,ts_recorded, fmt=img_format)
-                    write_results['filename'] = os.path.relpath(write_results['filename'], outdir)
-                camera2dict(timestamp, msg, write_results, cap_data['camera'])
-                if stats['img_count'] == 10:
-                    xxx = 1
-                stats['img_count'] += 1
+                    if stats['msg_count'] < 15:
+                        pass
+                    else:      
+                        write_results = image_bridge.write_image(camera_outdir, msg,ts_recorded, fmt=img_format)
+                        write_results['filename'] = os.path.relpath(write_results['filename'], outdir)
+                        camera2dict(timestamp, msg, write_results, cap_data['camera'])
+                        stats['img_count'] += 1
+                stats['msg_count'] += 1                
+
+            elif topic in TF_LIGHTS_TOPIC:
+                _PREV_LIGHT = get_closest_light(_CURRENT_POSE)
+                #    print(_PREV_LIGHT) 
+                tl2dict(timestamp, msg.lights[_PREV_LIGHT], cap_data['light']) 
                 stats['msg_count'] += 1
 
-            # elif topic in TF_LIGHTS_TOPIC:
-            #     pose2dict(timestamp, msg.pose, cap_data['rear_rtk'])
-            #     stats['msg_count'] += 1                
+            elif topic in CAR_POSE_TOPIC:
 
+                if _CURRENT_POSE[0] == msg.pose.position.x and _CURRENT_POSE[1] == msg.pose.position.y:
+                    pass
+                else:
+                    _CURRENT_POSE = (msg.pose.position.x,msg.pose.position.y)
+                # elif topic in OBS_POSE_TOPICS:
+                #     name = obs_name_from_topic(topic)
+                    pose2dict(timestamp, msg, cap_data['pose'])
+                    stats['msg_count'] += 1
             else:
                 pass
 
