@@ -27,7 +27,7 @@ from scipy.spatial import kdtree
 from scipy import stats
 
 
-sys.path += ['/media/sf_udacity/CarND-Capstone-binliu/ros/src/tl_detector']
+sys.path += ['/media/sf_udacity/CarND-Capstone-master/ros/src/tl_detector']
 from traffic_light_config import config
 
 # Bag message timestamp source
@@ -51,15 +51,15 @@ FRONT_TO_LIDAR = [-1.0922, 0, -0.0508]
 BASE_LINK_TO_LIDAR_PED = [1.9, 0., 1.6]
 
 # CAMERA_COLS = ["timestamp", "width", "height", "frame_id", "filename"]
-CAMERA_COLS = ["timestamp", "width", "height", "frame_id", "filename","light","state"]
+CAMERA_COLS = ["timestamp","filename","light","state"]
 GPS_COLS = ["timestamp", "lat", "long", "alt"]
 POS_COLS = ["timestamp", "tx", "ty", "tz", "rx", "ry", "rz"]
 
 #added by BinLiu 170903
-_PREV_LIGHT = -1    
-_PREV_STATE = 4    
+_NEXT_LIGHT = -1    
+_NEXT_LIGHT_STATE = 4    
+_NEXT_LIGHT_DISTANCE = -1
 _CURRENT_POSE = (-1,-1)
-# _CURRENT_LIGHT = -1
 #end add 
 
 def obs_name_from_topic(topic):
@@ -76,12 +76,12 @@ def obs_prefix_from_topic(topic):
 def camera2dict(timestamp, msg, write_results, camera_dict):
     camera_dict["timestamp"].append(timestamp)
     if write_results:
-        camera_dict["width"].append(write_results['width'] if 'width' in write_results else msg.width)
-        camera_dict['height'].append(write_results['height'] if 'height' in write_results else msg.height)
+        # camera_dict["width"].append(write_results['width'] if 'width' in write_results else msg.width)
+        # camera_dict['height'].append(write_results['height'] if 'height' in write_results else msg.height)
         # camera_dict["frame_id"].append(msg.header.frame_id)
         camera_dict["filename"].append(write_results['filename'])
-        camera_dict["light"].append(0 if _PREV_LIGHT == -1 else _PREV_LIGHT)        
-        camera_dict["state"].append(_PREV_STATE)                
+        camera_dict["light"].append(0 if _NEXT_LIGHT == -1 else _NEXT_LIGHT)        
+        camera_dict["state"].append(_NEXT_LIGHT_STATE)                
 
 def gps2dict(timestamp, msg, gps_dict):
     gps_dict["timestamp"].append(timestamp)
@@ -110,10 +110,10 @@ def tl2dict(timestamp, tl, tl_dict):
     tl_dict["timestamp"].append(timestamp)
     # tl_dict["tx"].append(tf.translation.x)
     # tf_dict["ty"].append(tf.translation.y)
-    tl_dict["nlight"].append(_PREV_LIGHT)    
+    tl_dict["nlight"].append(_NEXT_LIGHT)    
     tl_dict["state"].append(tl.state)
-    global _PREV_STATE      
-    _PREV_STATE = tl.state
+    global _NEXT_LIGHT_STATE      
+    _NEXT_LIGHT_STATE = tl.state
     # print(tl_dict)
 
 # def tf2dict(timestamp, tf, tf_dict):
@@ -611,21 +611,31 @@ def get_closest_light(pose):
     dLen = 1000000
     nLight = 0
     count = 0
-    for light in config.light_positions:    
-        dDist = distance(pose, light)            
-        if dDist < dLen:  
+    margin = 8
+
+    for light in config.light_positions:  
+        dDist = distance(pose, light) 
+        if dDist < dLen:                               
             if nLight >= 0 and nLight <=3:
-                if pose[0] > light[0]: pass
+                if pose[0] > light[0] + margin: 
+                    pass
+                else:
+                    dLen = dDist
+                    nLight = count                                
             elif nLight >= 4 and nLight <=5:
-                if pose[0] < light[0]: pass
+                if pose[0] < light[0] + margin : 
+                    pass
+                else:
+                    dLen = dDist            
+                    nLight = count                                                         
             elif nLight >= 6 and nLight <=7:
-                if pose[1] < light[1]: pass
-
-            dLen = dDist                
-            nLight = count                
+                if pose[1] < light[1] + margin: 
+                    pass
+                else:
+                    dLen = dDist             
+                    nLight = count                                                        
         count +=1
-    return nLight
-
+    return nLight, dLen
 #End add  
 
 
@@ -713,14 +723,19 @@ def main():
         get_outdir(outdir)
         if include_images:
             camera_outdir = get_outdir(outdir, "camera")
+            red_outdir = get_outdir(camera_outdir, "red")
+            green_outdir = get_outdir(camera_outdir, "green")
+            yellow_outdir = get_outdir(camera_outdir, "yellow")
+            unknow_outdir = get_outdir(camera_outdir, "unknow")                                                
         bs.write_infos(outdir)
         readers = bs.get_readers()
         stats_acc = defaultdict(int)
 
         def _process_msg(topic, msg, ts_recorded, stats):
-            global _PREV_LIGHT
+            global _NEXT_LIGHT
             global _CURRENT_POSE
-            global _PREV_STATE               
+            global _NEXT_LIGHT_STATE  
+            global _NEXT_LIGHT_DISTANCE             
             if topic == '/tf':
                 timestamp = msg.transforms[0].header.stamp.to_nsec()
             else:
@@ -731,29 +746,37 @@ def main():
                 timestamp = ts_recorded.to_nsec()
 
             if topic in CAMERA_TOPICS:
-                # write_results = {}
-                # if include_images:
-                #     write_results = image_bridge.write_image(camera_outdir, msg,ts_recorded, fmt=img_format)
-                #     write_results['filename'] = os.path.relpath(write_results['filename'], outdir)
-                # camera2dict(timestamp, msg, write_results, cap_data['camera'])
-                # stats['img_count'] += 1
-                # stats['msg_count'] += 1
-
                 write_results = {}
                 if include_images:
                     if stats['msg_count'] < 15:
                         pass
-                    else:      
-                        write_results = image_bridge.write_image(camera_outdir, msg,ts_recorded, fmt=img_format)
-                        write_results['filename'] = os.path.relpath(write_results['filename'], outdir)
+                    else:
+                        if _NEXT_LIGHT_DISTANCE > 195:
+                            _NEXT_LIGHT_STATE = config.light_state['UNKNOW']
+                        
+                        if _NEXT_LIGHT_STATE == config.light_state['RED']:
+                            write_results = image_bridge.write_image(red_outdir, msg,ts_recorded, fmt=img_format)
+                        elif _NEXT_LIGHT_STATE == config.light_state['GREEN']:
+                            write_results = image_bridge.write_image(green_outdir, msg,ts_recorded, fmt=img_format)  
+                        elif _NEXT_LIGHT_STATE == config.light_state['YELLOW']:
+                            write_results = image_bridge.write_image(yellow_outdir, msg,ts_recorded, fmt=img_format)                            
+                        elif _NEXT_LIGHT_STATE == config.light_state['UNKNOW']:
+                            write_results = image_bridge.write_image(unknow_outdir, msg,ts_recorded, fmt=img_format)                            
+                        else:
+                            print ("Ooooops, Wrong Light State:",_NEXT_LIGHT_STATE)
+
+                        write_results['filename'] = os.path.relpath(write_results['filename'], outdir) 
                         camera2dict(timestamp, msg, write_results, cap_data['camera'])
                         stats['img_count'] += 1
                 stats['msg_count'] += 1                
 
             elif topic in TF_LIGHTS_TOPIC:
-                _PREV_LIGHT = get_closest_light(_CURRENT_POSE)
-                #    print(_PREV_LIGHT) 
-                tl2dict(timestamp, msg.lights[_PREV_LIGHT], cap_data['light']) 
+                _NEXT_LIGHT, _NEXT_LIGHT_DISTANCE = get_closest_light(_CURRENT_POSE)  
+                if _NEXT_LIGHT_DISTANCE > 195:
+                    _NEXT_LIGHT_STATE = config.light_state['UNKNOW']
+
+
+                tl2dict(timestamp, msg.lights[_NEXT_LIGHT], cap_data['light']) 
                 stats['msg_count'] += 1
 
             elif topic in CAR_POSE_TOPIC:
