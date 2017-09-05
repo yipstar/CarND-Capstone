@@ -74,6 +74,8 @@ class DBWNode(object):
         self.curve_ref_waypoints = None
         self.current_pose = None
 
+        self.previous_loop_time = rospy.get_rostime()
+
         self.loop()
 
     def twist_cb(self, msg):
@@ -103,7 +105,13 @@ class DBWNode(object):
 
             if self.current_proposed_twist and self.current_velocity and self.final_waypoints and self.current_pose:
 
-                throttle, brake, steering = self.controller.control(self.current_velocity, self.current_proposed_twist, self.final_waypoints, self.curve_ref_waypoints, self.current_pose)
+                current_time = rospy.get_rostime()
+                ros_duration = current_time - self.previous_loop_time
+                dt = ros_duration.secs + (1e-9 * ros_duration.nsecs)
+                rospy.logwarn("dt: %s", dt)
+                self.previous_loop_time = current_time
+
+                throttle, brake, steering = self.controller.control(self.current_velocity, self.current_proposed_twist, self.final_waypoints, self.curve_ref_waypoints, self.current_pose, dt)
 
                 if dbw_enabled:
                     self.publish(throttle, brake, steering)
@@ -120,8 +128,6 @@ class DBWNode(object):
         scmd = SteeringCmd()
         scmd.enable = True
         scmd.steering_wheel_angle_cmd = steer
-        # scmd.steering_wheel_angle_cmd = - (math.pi / 8) # radians
-        # scmd.steering_wheel_angle_velocity = 5.0 # ???
         self.steer_pub.publish(scmd)
 
         bcmd = BrakeCmd()

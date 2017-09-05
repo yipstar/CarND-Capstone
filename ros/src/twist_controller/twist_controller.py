@@ -1,6 +1,8 @@
 import math
 import numpy as np
 import rospy
+import tf
+
 from scipy import interpolate
 from scipy.interpolate import UnivariateSpline
 
@@ -17,7 +19,9 @@ class TwistController(object):
 
         # TODO: Implement
 
-        # self.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
+        self.wheel_base = wheel_base
+
+        self.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
 
         # self.pid_steering_controller = PID(.5, .0001, 4, -max_steer_angle, max_steer_angle)
 
@@ -39,9 +43,11 @@ class TwistController(object):
 
         self.poly_pub = rospy.Publisher('/poly_pose', PoseStamped, queue_size=1)
 
+        self.last_theta = None
+
     # def get_freenet(x, y, theta, )
 
-    def control(self, current_velocity, proposed_velocity, final_waypoints, curve_ref_waypoints, current_pose):
+    def control(self, current_velocity, proposed_velocity, final_waypoints, curve_ref_waypoints, current_pose, dt):
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
 
@@ -49,17 +55,17 @@ class TwistController(object):
         angular_velocity = proposed_velocity.angular.z
         current_velocity = current_velocity.linear.x
 
-        # steer = self.yaw_controller.get_steering(linear_velocity, angular_velocity, current_velocity)
+        steer = -self.yaw_controller.get_steering(linear_velocity, angular_velocity, current_velocity)
 
         # fit polynomial to final waypoints
-        # x_vals = list(map(lambda wp: wp.pose.pose.position.x, final_waypoints.waypoints))
+        x_vals = list(map(lambda wp: wp.pose.pose.position.x, final_waypoints.waypoints))
 
-        # y_vals = list(map(lambda wp: wp.pose.pose.position.y, final_waypoints.waypoints))
+        y_vals = list(map(lambda wp: wp.pose.pose.position.y, final_waypoints.waypoints))
 
         # fit polynomial to curve_ref_waypoints
-        x_vals = list(map(lambda wp: wp.pose.pose.position.x, curve_ref_waypoints.waypoints))
+        # x_vals = list(map(lambda wp: wp.pose.pose.position.x, curve_ref_waypoints.waypoints))
 
-        y_vals = list(map(lambda wp: wp.pose.pose.position.y, curve_ref_waypoints.waypoints))
+        # y_vals = list(map(lambda wp: wp.pose.pose.position.y, curve_ref_waypoints.waypoints))
 
         current_car_x = current_pose.pose.position.x
         current_car_y = current_pose.pose.position.y
@@ -114,13 +120,13 @@ class TwistController(object):
         # if (abs(cross_track_error) > 15.0):
         #     rospy.signal_shutdown("Possible Lane Change")
 
-        steer = self.pid_steering_controller.step(cross_track_error, sample_time)
+        # steer = self.pid_steering_controller.step(cross_track_error, sample_time)
 
-        if (abs(cross_track_error) > 3.0):
-            rospy.logwarn('cross_track_error: %s', cross_track_error)
-            rospy.logwarn('steer: %s', steer)
-            rospy.logwarn('car_y: %s', current_car_y)
-            rospy.logwarn('target_y: %s', target_y)
+        # if (abs(cross_track_error) > 3.0):
+        #     rospy.logwarn('cross_track_error: %s', cross_track_error)
+        #     rospy.logwarn('steer: %s', steer)
+        #     rospy.logwarn('car_y: %s', current_car_y)
+        #     rospy.logwarn('target_y: %s', target_y)
 
         # if (abs(cross_track_error) > 9.0):
 
@@ -132,9 +138,35 @@ class TwistController(object):
         # steer = angular_velocity
         # steer = -(math.pi / 16)
 
+        quaternion = current_pose.pose.orientation
+        explicit_quat = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
+        euler = tf.transformations.euler_from_quaternion(explicit_quat)
+        yaw = euler[2]
+        rospy.logwarn("current yaw before steering: %s", yaw)
+
+        # steer = -(yaw + (angular_velocity * dt))
+
+        rospy.logwarn("twist angular_velocity: %s", angular_velocity)
+
+        L = self.wheel_base
+        steer = yaw + linear_velocity / L * math.tan(angular_velocity) * dt
+
+        # state.yaw = state.yaw + state.v / L * math.tan(delta) * dt
+
+
+        # steer = theta
+        rospy.logwarn("steer: %s", -steer)
+
+        # wheel_base = L
+        # omega is orientation
+        # V is angual velocity
+        # w looking sign is heading or yaw
+
         self.cycle += 1
 
-        return throttle, brake, steer
+        # steer = angular_velocity
+
+        return throttle, brake, -steer
         # return 1., 0., 0.
 
 
