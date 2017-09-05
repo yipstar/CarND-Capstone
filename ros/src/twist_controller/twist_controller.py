@@ -17,25 +17,15 @@ ONE_MPH = 0.44704
 class TwistController(object):
     def __init__(self, wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle):
 
-        # TODO: Implement
-
         self.wheel_base = wheel_base
 
         self.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
-
-        # self.pid_steering_controller = PID(.5, .0001, 4, -max_steer_angle, max_steer_angle)
-
-        # max_steer_angle = 3.0
 
         self.pid_steering_controller = PID(0.071769, 0.00411344, 0.974954, -max_steer_angle, max_steer_angle)
 
         # self.pid_steering_controller = PID(.2, .0001, .5, -max_steer_angle, max_steer_angle)
 
         # self.pid_steering_controller = PID(.5, .005, 1, -max_steer_angle, max_steer_angle)
-
-        # self.pid_steering_controller = PID(.125, 0.0005, .2, -max_steer_angle, max_steer_angle)
-
-        self.change_lane_steering_controller = PID(.2, 0, 0, -2.0, 2.0)
 
         self.cycle = 0
 
@@ -45,6 +35,15 @@ class TwistController(object):
 
         self.last_theta = None
 
+
+    def rad2deg(self, radians):
+	degrees = 180 * radians / math.pi
+	return degrees
+
+    def deg2rad(self, degrees):
+	radians = math.pi * degrees / 180
+	return radians
+
     # def get_freenet(x, y, theta, )
 
     def control(self, current_velocity, proposed_velocity, final_waypoints, curve_ref_waypoints, current_pose, dt):
@@ -52,8 +51,15 @@ class TwistController(object):
         # Return throttle, brake, steer
 
         linear_velocity = proposed_velocity.linear.x
+        proposed_linear_velocity = linear_velocity
+
         angular_velocity = proposed_velocity.angular.z
+        proposed_angular_velocity = angular_velocity
+
         current_velocity = current_velocity.linear.x
+        current_linear_velocity = current_velocity
+
+        # calculate predictive steer component
 
         steer = -self.yaw_controller.get_steering(linear_velocity, angular_velocity, current_velocity)
 
@@ -101,72 +107,32 @@ class TwistController(object):
         msg.pose.position.z = cross_track_error2 # just to use for plotting
         self.spline_pub.publish(msg)
 
-        # sample_time = .02 # ??? Match Rate in dbw_node?
-        sample_time = 1
-
         # clear the integral component every .5 seconds
-        if (self.cycle % 10 == 1):
-            self.pid_steering_controller.reset()
+        # if (self.cycle % 10 == 1):
+        #     self.pid_steering_controller.reset()
 
-        # TODO: if cross_track_error > 7.0 then we have a lane change
+        # if cross_track_error > 7.0
+        # rospy.signal_shutdown("High CTE")
 
-        # if (abs(cross_track_error) > 15.0):
-        #     rospy.logwarn('changing lane')
-        #     steer = self.change_lane_steering_controller.step(cross_track_error, sample_time)
-
-        #     # rospy.signal_shutdown("Possible Lane Change")
-        # else:
-
-        # if (abs(cross_track_error) > 15.0):
-        #     rospy.signal_shutdown("Possible Lane Change")
-
+        # TODO Calculate steering_cte
         # steer = self.pid_steering_controller.step(cross_track_error, sample_time)
 
-        # if (abs(cross_track_error) > 3.0):
-        #     rospy.logwarn('cross_track_error: %s', cross_track_error)
-        #     rospy.logwarn('steer: %s', steer)
-        #     rospy.logwarn('car_y: %s', current_car_y)
-        #     rospy.logwarn('target_y: %s', target_y)
+        throttle = 0.
+        brake = 0.
+        velocity_cte = proposed_linear_velocity - current_linear_velocity
+        if(current_linear_velocity < proposed_linear_velocity):
+          throttle = min(1.0, velocity_cte)
 
-        # if (abs(cross_track_error) > 9.0):
-
-
-        throttle = 10
-        brake = 0
-        # steer = 0
-
-        # steer = angular_velocity
-        # steer = -(math.pi / 16)
-
-        quaternion = current_pose.pose.orientation
-        explicit_quat = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
-        euler = tf.transformations.euler_from_quaternion(explicit_quat)
-        yaw = euler[2]
-        rospy.logwarn("current yaw before steering: %s", yaw)
-
-        # steer = -(yaw + (angular_velocity * dt))
-
-        rospy.logwarn("twist angular_velocity: %s", angular_velocity)
-
-        L = self.wheel_base
-        steer = yaw + linear_velocity / L * math.tan(angular_velocity) * dt
-
-        # state.yaw = state.yaw + state.v / L * math.tan(delta) * dt
-
-
-        # steer = theta
-        rospy.logwarn("steer: %s", -steer)
-
-        # wheel_base = L
-        # omega is orientation
-        # V is angual velocity
-        # w looking sign is heading or yaw
+        if(current_linear_velocity > proposed_linear_velocity):
+          brake = 1000.
 
         self.cycle += 1
 
-        # steer = angular_velocity
+        throttle = 1.0
 
-        return throttle, brake, -steer
-        # return 1., 0., 0.
+        rospy.logwarn('plv: %s pav: %s cv: %s', proposed_linear_velocity, proposed_angular_velocity,  current_linear_velocity)
+        rospy.logwarn('throttle: %s brake: %s steer: %s', throttle, brake,  steer)
+
+        return throttle, brake, steer
 
 
