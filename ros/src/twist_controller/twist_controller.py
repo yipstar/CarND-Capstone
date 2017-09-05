@@ -14,93 +14,37 @@ class TwistController(object):
 
         # TODO: Implement
 
-        # self.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
+        self.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
 
-        # self.pid_steering_controller = PID(.5, .0001, 4, -max_steer_angle, max_steer_angle)
+    def rad2deg(self, radians):
+	degrees = 180 * radians / math.pi
+	return degrees
 
-        # max_steer_angle = 3.0
+    def deg2rad(self, degrees):
+	radians = math.pi * degrees / 180
+	return radians
 
-        # self.pid_steering_controller = PID(0.071769, 0.00411344, 0.974954, -max_steer_angle, max_steer_angle)
-
-        # self.pid_steering_controller = PID(.2, .0001, .5, -max_steer_angle, max_steer_angle)
-
-        self.pid_steering_controller = PID(.5, .005, 1, -max_steer_angle, max_steer_angle)
-
-        # self.pid_steering_controller = PID(.125, 0.0005, .2, -max_steer_angle, max_steer_angle)
-
-        self.change_lane_steering_controller = PID(.2, 0, 0, -2.0, 2.0)
-
-        self.cycle = 0
-
-    def control(self, current_velocity, proposed_velocity, final_waypoints, current_pose):
+    def control(self, proposed_linear_velocity, proposed_angular_velocity, current_linear_velocity, current_angular_velocity, dbw_enabled):
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
 
-        linear_velocity = proposed_velocity.linear.x
-        angular_velocity = proposed_velocity.angular.z
-        current_velocity = current_velocity.linear.x
+        # calculate predictive steer component
+        steer = self.yaw_controller.get_steering(proposed_linear_velocity, proposed_angular_velocity, current_linear_velocity)
 
-        # steer = self.yaw_controller.get_steering(linear_velocity, angular_velocity, current_velocity)
+        # TODO Calculate steering_cte
 
-        # fit polynomial to final waypoints
-        x_vals = list(map(lambda wp: wp.pose.pose.position.x, final_waypoints.waypoints))
+        throttle = 0.
+        brake = 0.
+        velocity_cte = proposed_linear_velocity - current_linear_velocity
+        if(current_linear_velocity < proposed_linear_velocity):
+          throttle = min(1.0, velocity_cte)  
 
-        y_vals = list(map(lambda wp: wp.pose.pose.position.y, final_waypoints.waypoints))
+        if(current_linear_velocity > proposed_linear_velocity):
+          brake = 1000.
 
-        current_car_x = current_pose.pose.position.x
-        current_car_y = current_pose.pose.position.y
-
-        # fit 3rd degree poly
-        z = np.polyfit(x_vals, y_vals, 3)
-        p = np.poly1d(z)
-        target_y = p(current_car_x)
-        cross_track_error = target_y - current_car_y
-
-        # fit a spline
-        # tck = interpolate.splrep(x_vals[0:100], y_vals[0:100])
-        # target_y = interpolate.splev(current_car_x, tck, der=0)
-        # cross_track_error = target_y - current_car_y
-
-        # sample_time = .02 # ??? Match Rate in dbw_node?
-        sample_time = 1
-
-        # clear the integral component every .5 seconds
-        if (self.cycle % 10 == 1):
-            self.pid_steering_controller.reset()
-
-        # TODO: if cross_track_error > 7.0 then we have a lane change
-
-        # if (abs(cross_track_error) > 15.0):
-        #     rospy.logwarn('changing lane')
-        #     steer = self.change_lane_steering_controller.step(cross_track_error, sample_time)
-
-        #     # rospy.signal_shutdown("Possible Lane Change")
-        # else:
-
-        # if (abs(cross_track_error) > 15.0):
-        #     rospy.signal_shutdown("Possible Lane Change")
-
-        steer = self.pid_steering_controller.step(cross_track_error, sample_time)
-
-        if (abs(cross_track_error) > 3.0):
-            rospy.logwarn('cross_track_error: %s', cross_track_error)
-            rospy.logwarn('steer: %s', steer)
-            rospy.logwarn('car_y: %s', current_car_y)
-            rospy.logwarn('target_y: %s', target_y)
-
-        # if (abs(cross_track_error) > 9.0):
-
-
-        throttle = 10
-        brake = 0
-        # steer = 0
-
-        # steer = angular_velocity
-        # steer = -(math.pi / 16)
-
-        self.cycle += 1
+        rospy.logwarn('plv: %s pav: %s cv: %s', proposed_linear_velocity, proposed_angular_velocity,  current_linear_velocity)
+        rospy.logwarn('throttle: %s brake: %s steer: %s', throttle, brake,  steer)
 
         return throttle, brake, steer
-        # return 1., 0., 0.
 
 

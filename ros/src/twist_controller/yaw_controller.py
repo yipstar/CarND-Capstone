@@ -25,7 +25,7 @@ class YawController(object):
 
         if abs(angular_velocity) > 0.:
             val = self.get_angle(max(current_velocity, self.min_speed) / angular_velocity)
-            rospy.logwarn('yaw_controller val: %s', val)
+            #rospy.logwarn('yaw_controller val: %s', val)
             return val
         else:
             return 0.0;

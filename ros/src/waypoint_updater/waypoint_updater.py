@@ -3,7 +3,6 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
-import tf
 
 import math
 
@@ -50,38 +49,16 @@ class WaypointUpdater(object):
         current_pose = msg.pose
 
         if (self.waypoints):
+            next_wp_index = self.next_waypoint(msg.pose.position.x, msg.pose.position.y, 0, self.waypoints)
 
-            quaternion = msg.pose.orientation
-            explicit_quat = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
-            euler = tf.transformations.euler_from_quaternion(explicit_quat)
-            heading = euler[2]
-            # rospy.logwarn('current_pose heading (yaw): %s', heading)
-
-            next_wp_index = self.next_waypoint(msg.pose.position.x, msg.pose.position.y, heading, self.waypoints)
-
-            # rospy.logwarn('next_wp_index %s: ', next_wp_index)
+            # rospy.loginfo('next_wp_index %s: ', next_wp_index)
             waypoints = self.waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS]
-
-            last_wp = self.waypoints[next_wp_index - 1]
 
             for i in range(len(waypoints)):
                 self.set_waypoint_velocity(waypoints, i, 10)
-
                 next_wp = waypoints[i]
+                rospy.loginfo('next waypoint x, y, v: %s, %s, %s', next_wp.pose.pose.position.x, next_wp.pose.pose.position.y, next_wp.twist.twist.linear.x)
 
-                # x1 = last_wp.pose.pose.position.x
-                # y1 = last_wp.pose.pose.position.y
-
-                # x2 = next_wp.pose.pose.position.x
-                # y2 = next_wp.pose.pose.position.y
-
-                # theta = math.atan2((y2 - y1), (x2 -x1))
-
-                # angle = abs(theta - heading)
-
-                # self.set_waypoint_angular_velocity(waypoints, i, angle)
-
-                # rospy.logwarn('next waypoint x, y, v, a_z: %s, %s, %s, %s', next_wp.pose.pose.position.x, next_wp.pose.pose.position.y, next_wp.twist.twist.linear.x, next_wp.twist.twist.angular.z)
 
             lane = Lane()
             lane.header.frame_id = '/world'
@@ -108,10 +85,6 @@ class WaypointUpdater(object):
 
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
         waypoints[waypoint].twist.twist.linear.x = velocity
-
-    def set_waypoint_angular_velocity(self, waypoints, waypoint, velocity):
-        # waypoints[waypoint].twist.twist.angular.x = velocity
-        waypoints[waypoint].twist.twist.angular.z = velocity
 
     def distance(self, waypoints, wp1, wp2):
         dist = 0
