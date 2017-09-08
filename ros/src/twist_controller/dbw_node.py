@@ -94,8 +94,6 @@ class DBWNode(object):
     def loop(self):
         rate = rospy.Rate(10) # 50Hz
 
-        # dbw_enabled = True
-
         while not rospy.is_shutdown():
 
             if self.current_velocity and self.twist_cmd and self.final_waypoints and self.current_pose:
@@ -109,7 +107,7 @@ class DBWNode(object):
 
                 throttle, brake, steering = self.controller.control(self.current_velocity, self.twist_cmd, self.final_waypoints, self.current_pose, dt)
 
-                #You should only publish the control commands if dbw is enabled
+                # You should only publish the control commands if dbw is enabled
                 if self.dbw_enabled:
                     self.publish(throttle, brake, steering)
 
