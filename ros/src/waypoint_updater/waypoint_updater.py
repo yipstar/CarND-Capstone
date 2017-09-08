@@ -48,6 +48,9 @@ class WaypointUpdater(object):
         waypoints = self.waypoints
         current_pose = msg.pose
 
+        # 10 MPH convert to mps
+        target_velocity = 10 * 0.44704
+
         if (waypoints):
 
             # next_wp_index = self.next_waypoint(current_pose, waypoints)
@@ -56,7 +59,7 @@ class WaypointUpdater(object):
             final_waypoints = waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS]
 
             for i in range(len(final_waypoints)):
-                self.set_waypoint_velocity(final_waypoints, i, 10)
+                self.set_waypoint_velocity(final_waypoints, i, target_velocity)
                 next_wp = final_waypoints[i]
 
             lane = Lane()

@@ -14,21 +14,24 @@ class PID(object):
         self.min = mn
         self.max = mx
 
-        self.error_integral = 0.0
+        self.i_error = 0.0
         self.last_error = 0.0
 
     def reset(self):
 
         self.last_error = 0.0
-        self.error_integral = 0.0
+        self.i_error = 0.0
 
     def step(self, error, sample_time):
 
-        self.error_integral += error * sample_time
-        derivative = (error - self.last_error) / sample_time
+        self.i_error += error * sample_time
+
+        d_error = (error - self.last_error) / sample_time
 
         self.last_error = error
 
-        y = (self.kp * error) + (self.ki * self.error_integral) + (self.kd * derivative)
+        y = (self.kp * error) + (self.ki * self.i_error) + (self.kd * d_error)
+
+        # rospy.logwarn("y: %s", y)
 
         return max(self.min, min(y, self.max))
