@@ -5,6 +5,9 @@ from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 
 import math
+import numpy as np
+
+import waypoints_helper
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -35,55 +38,35 @@ class WaypointUpdater(object):
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
-        self.curve_ref_waypoints_pub = rospy.Publisher('curve_ref_waypoints', Lane, queue_size=1)
 
-        # self.spline_pub = rospy.Publisher('spline', Lane, queue_size=1)
-
-        # TODO: Add other member variables you need below
         self.current_pose = None
-
         self.waypoints = None
 
         rospy.spin()
 
     def pose_cb(self, msg):
-        # TODO: Implement
-        rospy.loginfo('current_pose x, y: %s, %s', msg.pose.position.x, msg.pose.position.y)
+        waypoints = self.waypoints
         current_pose = msg.pose
 
-        if (self.waypoints):
-            next_wp_index = self.next_waypoint(msg.pose.position.x, msg.pose.position.y, 0, self.waypoints)
+        if (waypoints):
 
-            # rospy.loginfo('next_wp_index %s: ', next_wp_index)
-            waypoints = self.waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS]
+            # next_wp_index = self.next_waypoint(current_pose, waypoints)
+            next_wp_index = self.next_waypoint2(current_pose, waypoints)
 
-            curve_ref_waypoints = self.waypoints[next_wp_index - 10: next_wp_index + LOOKAHEAD_WPS]
+            final_waypoints = waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS]
 
-            last_wp = self.waypoints[next_wp_index - 1]
-
-            for i in range(len(waypoints)):
-                self.set_waypoint_velocity(waypoints, i, 10)
-                next_wp = waypoints[i]
-                rospy.loginfo('next waypoint x, y, v: %s, %s, %s', next_wp.pose.pose.position.x, next_wp.pose.pose.position.y, next_wp.twist.twist.linear.x)
+            for i in range(len(final_waypoints)):
+                self.set_waypoint_velocity(final_waypoints, i, 10)
+                next_wp = final_waypoints[i]
 
             lane = Lane()
             lane.header.frame_id = '/world'
             lane.header.stamp = rospy.Time(0)
-            lane.waypoints = waypoints
+            lane.waypoints = final_waypoints
             self.final_waypoints_pub.publish(lane)
 
-            lane = Lane()
-            lane.header.frame_id = '/world'
-            lane.header.stamp = rospy.Time(0)
-            lane.waypoints = waypoints
-            self.curve_ref_waypoints_pub.publish(lane)
-
-
     def waypoints_cb(self, waypoints):
-        # TODO: Implement
-        # rospy.loginfo('waypoints size: %s', len(waypoints.waypoints))
         self.waypoints = waypoints.waypoints
-        # pass
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
@@ -107,34 +90,41 @@ class WaypointUpdater(object):
             wp1 = i
         return dist
 
-    def next_waypoint(self, x, y, theta, waypoints):
-        closest_waypoint_index = self.closest_waypoint(x, y, waypoints)
-
-        wp = waypoints[closest_waypoint_index]
-
-        heading = math.atan2( (wp.pose.pose.position.y - y), (wp.pose.pose.position.x - x))
-        angle = abs(theta - heading)
-
-        if (angle > math.pi / 4):
-            closest_waypoint_index += 1
-
-        return closest_waypoint_index
-
-    def closest_waypoint(self, x, y, waypoints):
+    def next_waypoint(self, current_pose, waypoints):
         closest_len = 1000000; # large number
         closest_waypoint_index = 0
 
+        distances = []
+
         for i in range(len(waypoints)):
             wp = waypoints[i]
+
+            car_x = current_pose.position.x
+            car_y = current_pose.position.y
+
             wp_x = wp.pose.pose.position.x
             wp_y = wp.pose.pose.position.y
 
-            dist = self.distance2(x, y, wp_x, wp_y)
-            if (dist < closest_len):
-                closest_len = dist
-                closest_waypoint_index = i
+            dist = self.distance2(car_x, car_y, wp_x, wp_y)
+            distances.append(dist)
 
-        return closest_waypoint_index
+        return np.argmin(distances)
+
+    def next_waypoint2(self, current_pose, waypoints):
+
+        wp_matrix = np.zeros(shape=(len(waypoints), 2), dtype=np.float32)
+
+        for i in range(len(waypoints)):
+            wp = waypoints[i]
+
+            wp_matrix[i, 0] = wp.pose.pose.position.x
+            wp_matrix[i, 1] = wp.pose.pose.position.y
+
+        x_dist = wp_matrix[:, 0] - current_pose.position.x
+        y_dist = wp_matrix[:, 1] - current_pose.position.y
+
+        distances = np.sqrt(x_dist*x_dist + y_dist*y_dist)
+        return np.argmin(distances)
 
     def distance2(self, x1, y1, x2, y2):
 	    return math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))

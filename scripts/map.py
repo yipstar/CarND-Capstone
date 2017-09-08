@@ -68,7 +68,7 @@ def get_test_spline(map_x, map_y):
 
 def draw_plot():
 
-    bagname = 'bag6.bag'
+    bagname = 'bag5.bag'
 
     fig, ax = plt.subplots()
 
@@ -80,11 +80,11 @@ def draw_plot():
 
     # test_spline_x, test_spline_y = get_test_spline(map_x, map_y)
 
-    poly_x, poly_y = get_poly_points(bagname)
+    # poly_x, poly_y = get_poly_points(bagname)
 
     print('car_x points: %s', len(car_x))
-    print('spline_x points: %s', len(spline_x))
-    print('poly_x points: %s', len(poly_x))
+    # print('spline_x points: %s', len(spline_x))
+    # print('poly_x points: %s', len(poly_x))
 
     ax.plot(map_x, map_y, 'g--')
     # ax.plot(car_x, car_y, 'b--')

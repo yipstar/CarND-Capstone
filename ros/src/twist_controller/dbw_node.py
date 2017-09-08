@@ -58,25 +58,18 @@ class DBWNode(object):
 
         min_speed = 0
 
-        # TODO: Create `TwistController` object
         self.controller = TwistController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
 
-        # TODO: Subscribe to all the topics you need to
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
-
         rospy.Subscriber('/final_waypoints', Lane, self.final_waypoints_cb)
-        rospy.Subscriber('/curve_ref_waypoints', Lane, self.curve_ref_waypoints_cb)
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
-
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
 
-        self.current_proposed_twist = None
+        self.twist_cmd = None
         self.current_velocity = None
         self.final_waypoints = None
-        self.curve_ref_waypoints = None
         self.current_pose = None
-
         self.dbw_enabled = False
 
         self.previous_loop_time = rospy.get_rostime()
@@ -84,17 +77,13 @@ class DBWNode(object):
         self.loop()
 
     def twist_cb(self, msg):
-        # rospy.loginfo('twist cmd received')
-        self.current_proposed_twist = msg.twist
+        self.twist_cmd = msg.twist
 
     def current_velocity_cb(self, msg):
         self.current_velocity = msg.twist
 
     def final_waypoints_cb(self, msg):
         self.final_waypoints = msg
-
-    def curve_ref_waypoints_cb(self, msg):
-        self.curve_ref_waypoints = msg
 
     def pose_cb(self, msg):
         self.current_pose = msg
@@ -105,28 +94,22 @@ class DBWNode(object):
     def loop(self):
         rate = rospy.Rate(10) # 50Hz
 
-        dbw_enabled = True
+        # dbw_enabled = True
 
         while not rospy.is_shutdown():
-            #TODO: Get predicted throttle, brake, and steering using `twist_controller`
-            #You should only publish the control commands if dbw is enabled
 
-            if self.current_proposed_twist and self.current_velocity and self.final_waypoints and self.current_pose:
-                proposed_linear_velocity = self.current_proposed_twist.linear.x
-                proposed_angular_velocity = self.current_proposed_twist.angular.z
-                current_linear_velocity = self.current_velocity.linear.x
-                current_angular_velocity = self.current_velocity.angular.z
+            if self.current_velocity and self.twist_cmd and self.final_waypoints and self.current_pose:
 
                 current_time = rospy.get_rostime()
                 ros_duration = current_time - self.previous_loop_time
                 dt = ros_duration.secs + (1e-9 * ros_duration.nsecs)
-                rospy.logwarn("dt: %s", dt)
+                # rospy.logwarn("dt: %s", dt)
+
                 self.previous_loop_time = current_time
 
-                throttle, brake, steering = self.controller.control(self.current_velocity, self.current_proposed_twist, self.final_waypoints, self.curve_ref_waypoints, self.current_pose, dt)
+                throttle, brake, steering = self.controller.control(self.current_velocity, self.twist_cmd, self.final_waypoints, self.current_pose, dt)
 
-                dbw_enabled = True
-
+                #You should only publish the control commands if dbw is enabled
                 if self.dbw_enabled:
                     self.publish(throttle, brake, steering)
 
