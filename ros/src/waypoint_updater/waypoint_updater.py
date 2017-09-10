@@ -49,7 +49,8 @@ class WaypointUpdater(object):
         current_pose = msg.pose
 
         # 10 MPH convert to mps
-        target_velocity = 10 * 0.44704
+        target_velocity = 25 #MPH
+        target_velocity = target_velocity * 0.44704
 
         if (waypoints):
 
