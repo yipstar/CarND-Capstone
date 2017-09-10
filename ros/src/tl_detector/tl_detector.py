@@ -193,10 +193,11 @@ class TLDetector(object):
             waypoints = self.waypoints.waypoints
             lights = self.lights
 
-            closest_wp_index = self.get_closest_waypoint(pose.pose)
+            # closest_wp_index = self.get_closest_waypoint(pose.pose)
+            closest_wp_index = self.get_next_point_index(pose.pose, waypoints)
             closest_wp = waypoints[closest_wp_index]
 
-            rospy.logwarn("closest_wp index:%s, x:%s, y:%s, car_x: %s, car_y: %s", closest_wp_index, closest_wp.pose.pose.position.x, closest_wp.pose.pose.position.y, pose.pose.position.x, pose.pose.position.y)
+            # rospy.logwarn("closest_wp index:%s, x:%s, y:%s, car_x: %s, car_y: %s", closest_wp_index, closest_wp.pose.pose.position.x, closest_wp.pose.pose.position.y, pose.pose.position.x, pose.pose.position.y)
 
             # #TODO find the closest visible traffic light (if one exists)
             next_light_index = self.get_next_point_index(pose.pose, lights)
@@ -212,7 +213,8 @@ class TLDetector(object):
                 # state = self.get_light_state(light)
                 state = light.state
 
-                rospy.logwarn("next_wp_light index: %s, state: %s, x: %s, y: %s, dist: %s", next_light_wp_index, state, light.pose.pose.position.x, light.pose.pose.position.y, dist)
+                # rospy.logwarn("next_wp_light index: %s, state: %s, x: %s, y: %s, dist: %s", next_light_wp_index, state, light.pose.pose.position.x, light.pose.pose.position.y, dist)
+
                 return next_light_wp_index, state
 
         self.waypoints = None

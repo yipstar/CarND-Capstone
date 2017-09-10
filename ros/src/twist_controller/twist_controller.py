@@ -40,19 +40,12 @@ class TwistController(object):
         throttle = self.throttle_controller.step(velocity_cte, dt)
         # rospy.logwarn("velocity_cte: %s, throttle: %s", velocity_cte, throttle)
 
-        # velocity_cte = proposed_linear_velocity - current_linear_velocity
-        # if(current_linear_velocity < proposed_linear_velocity):
-        #   throttle = min(1.0, velocity_cte)
-
-        # if(current_linear_velocity > proposed_linear_velocity):
-        #   brake = 1000.
-
-        # throttle = 1.0
-        # throttle = 0.5
+        if(current_linear_velocity > proposed_linear_velocity):
+          brake = 2000.
 
         # rospy.logwarn('plv: %s pav: %s cv: %s', proposed_linear_velocity, proposed_angular_velocity,  current_linear_velocity)
 
-        # rospy.logwarn('throttle: %s brake: %s steer: %s', throttle, brake,  steer)
+        rospy.logwarn('throttle: %s brake: %s steer: %s', throttle, brake,  steer)
 
         return throttle, brake, steer
 

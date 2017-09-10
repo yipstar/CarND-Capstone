@@ -1,3 +1,11 @@
+Stephen Welch [2 days ago] 
+Brake should be given in torque. The correct amount of torque can be computed using the desired acceleration, the weight of the vehicle, and the wheel radius.
+
+
+Stephen Welch [2 days ago] 
+I'll update the project instructions to make this clear.
+
+
 rosmsg info geometry_msgs/PoseStamped
 std_msgs/Header header
   uint32 seq
