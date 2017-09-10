@@ -208,11 +208,12 @@ class TLDetector(object):
             if next_light_wp_index > closest_wp_index:
 
                 dist = self.distance(waypoints, closest_wp_index, next_light_wp_index)
-                rospy.logwarn("next_wp_light index: %s, x: %s, y: %s, dist: %s", next_light_wp_index, light.pose.pose.position.x, light.pose.pose.position.y, dist)
 
-        # if light:
-        #     state = self.get_light_state(light)
-        #     return light_wp, state
+                # state = self.get_light_state(light)
+                state = light.state
+
+                rospy.logwarn("next_wp_light index: %s, state: %s, x: %s, y: %s, dist: %s", next_light_wp_index, state, light.pose.pose.position.x, light.pose.pose.position.y, dist)
+                return next_light_wp_index, state
 
         self.waypoints = None
         return -1, TrafficLight.UNKNOWN
