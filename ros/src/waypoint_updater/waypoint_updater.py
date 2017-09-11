@@ -48,6 +48,9 @@ class WaypointUpdater(object):
         self.upcoming_red_light = None
         self.current_velocity = None
 
+        self.time_prev = rospy.Time.now()
+        self.previous_loop_time = rospy.get_rostime()
+
         rospy.spin()
 
     def current_velocity_cb(self, msg):
@@ -57,9 +60,15 @@ class WaypointUpdater(object):
         waypoints = self.waypoints
         current_pose = msg.pose
 
+        time_now = rospy.Time.now()
+        dt = (time_now - self.time_prev).to_sec()
+        # rospy.logwarn("dt: %s", dt)
+        self.time_prev = time_now
+
         # 10 MPH convert to mps
-        target_velocity = 25 #MPH
-        target_velocity = target_velocity * 0.44704
+        # target_velocity = 25 #MPH
+        # target_velocity = target_velocity * 0.44704
+        go_velocity = 10 # meters per second
 
         begin_decelerating_distance = 50.0
 
@@ -69,6 +78,12 @@ class WaypointUpdater(object):
 
         stop_velocity = -1
 
+        # assume go unless red traffic light
+        target_velocity = go_velocity
+
+        # ramp current velocity by 5/ms^2
+        ramp_rate = 8.0
+
         if (waypoints):
 
             # next_wp_index = self.next_waypoint(current_pose, waypoints)
@@ -76,6 +91,10 @@ class WaypointUpdater(object):
             # rospy.logwarn("next_wp_index: %s", next_wp_index)
 
             final_waypoints = waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS]
+
+            # ranges between 200 and 100 meters depending on track location
+            # final_waypoints_distance = self.distance(waypoints, next_wp_index, next_wp_index + LOOKAHEAD_WPS)
+            # rospy.logwarn("final_waypoints distance: %s", final_waypoints_distance)
 
             dist = None
             wp_offset = 2 # stop 2 waypoints ahead of the light
@@ -85,20 +104,32 @@ class WaypointUpdater(object):
                 dist = self.distance(waypoints, next_wp_index, stop_index)
 
                 # rospy.logwarn("upcoming_red_light_wp: %s, dist: %s", stop_index, dist)
+                if stop_index > next_wp_index and dist < begin_decelerating_distance:
+                    target_velocity = stop_velocity
 
-                # if distance to red traffic light is < begin_decelerating_distance slow down and stop
-            if (dist and dist < begin_decelerating_distance):
-                for i in range(len(final_waypoints)):
-                    self.set_waypoint_velocity(final_waypoints, i, stop_velocity)
-            else:
-                for i in range(len(final_waypoints)):
-                    self.set_waypoint_velocity(final_waypoints, i, target_velocity)
+            wp_vel = current_velocity
+            for i in range(len(final_waypoints)):
+
+                ramped_vel = self.ramped_velocity(wp_vel, target_velocity, 1.0, ramp_rate)
+
+                self.set_waypoint_velocity(final_waypoints, i, ramped_vel)
+                wp_vel = ramped_vel
 
             lane = Lane()
             lane.header.frame_id = '/world'
             lane.header.stamp = rospy.Time(0)
             lane.waypoints = final_waypoints
             self.final_waypoints_pub.publish(lane)
+
+    def ramped_velocity(self, v_prev, v_target, dt, ramp_rate):
+        step = ramp_rate * dt
+        sign = 1.0 if (v_target > v_prev) else -1.0
+        error = math.fabs(v_target - v_prev)
+        if error < step:
+            # we can get there within this time step, we're done.
+            return v_target
+        else:
+            return v_prev + sign * step # take a step toward the target
 
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints.waypoints
