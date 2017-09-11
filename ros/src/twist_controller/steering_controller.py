@@ -2,7 +2,7 @@ import math
 import numpy as np
 import rospy
 import tf
-from scipy.interpolate import CubicSpline
+# from scipy.interpolate import CubicSpline
 
 from geometry_msgs.msg import PoseStamped
 from yaw_controller import YawController
