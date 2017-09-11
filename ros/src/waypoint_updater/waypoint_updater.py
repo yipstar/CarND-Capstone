@@ -9,8 +9,6 @@ from geometry_msgs.msg import TwistStamped
 import math
 import numpy as np
 
-import waypoints_helper
-
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
 
