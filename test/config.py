@@ -6,18 +6,10 @@
 
 data_dir = {
 	"base_dir" : "./",
-	# "camera_cal" : "../camera_cal/",
-	# "test_images" : "../test_images/",
 	"output_images" : "../output_images/",
 	"output" : "./output/" ,
 	"test" : "../test/"
 	}
-
-# train_data = [
-#         # data of track1 from udacity
-#         # ("data/udacity/driving_log.csv", "data/udacity/IMG/")
-#         ("data/didi/train_label_1_15.csv", "data/didi/IMG/1/15")		
-# ]
 
 # test_data = [
 #         # data of track1 from udacity
