@@ -90,7 +90,7 @@ base_model_output = base_model.output
 x = Flatten()(base_model_output)
 x = Dense(1024, activation='relu', kernel_regularizer=l2(0.01), name='fc6')(x)
 x = Dropout(0.5)(x)
-x = Dense(512, name='fc7')(x)
+x = Dense(512, activation='relu',name='fc7')(x)
 x = Dropout(0.5)(x)
 x = Dense(3, activation='softmax', name='logits')(x)
 
