@@ -1,4 +1,8 @@
-Stephen Welch [2 days ago] 
+TODO:
+
+https://github.com/udacity/CarND-Capstone/issues/31
+
+Stephen Welch [2 days ago]
 Brake should be given in torque. The correct amount of torque can be computed using the desired acceleration, the weight of the vehicle, and the wheel radius.
 
 
@@ -159,3 +163,5 @@ styx_msgs/TrafficLight[] lights
         float64 z
         float64 w
   uint8 state
+
+

@@ -177,6 +177,7 @@ class TLDetector(object):
         x, y = self.project_to_image_plane(light.pose.pose.position)
 
         #TODO use light location to zoom in on traffic light in image
+        # use x y to crop around location
 
         #Get classification
         return self.light_classifier.get_classification(cv_image)
@@ -235,9 +236,9 @@ class TLDetector(object):
                 # only check if we're < 200 meters away from next closest light
                 if (dist < 200):
                     config_light_state = self.get_light_state(config_light)
-                    topic_light_state = topic_light.state
-                    # state = config_light_state
-                    state = topic_light_state
+                    state = config_light_state
+                    # topic_light_state = topic_light.state
+                    # state = topic_light_state
 
                     rospy.logwarn("next_wp_light index: %s, state: %s, x: %s, y: %s, dist: %s", next_light_wp_index, state, topic_light.pose.pose.position.x, topic_light.pose.pose.position.y, dist)
 
