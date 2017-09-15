@@ -79,7 +79,7 @@ class WaypointUpdater(object):
         # assume go unless red traffic light
         target_velocity = go_velocity
 
-        # ramp current velocity by 5/ms^2
+        # ramp current velocity by 8/ms^2
         ramp_rate = 8.0
 
         if (waypoints):
@@ -95,7 +95,7 @@ class WaypointUpdater(object):
             # rospy.logwarn("final_waypoints distance: %s", final_waypoints_distance)
 
             dist = None
-            wp_offset = 2 # stop 2 waypoints ahead of the light
+            wp_offset = 0 # stop 2 waypoints ahead of the light
             if self.upcoming_red_light and self.upcoming_red_light != -1:
 
                 stop_index = self.upcoming_red_light - wp_offset
