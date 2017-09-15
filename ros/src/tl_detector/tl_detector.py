@@ -199,8 +199,7 @@ class TLDetector(object):
         pose = self.pose
         waypoints = self.waypoints.waypoints
 
-        if(pose and waypoints and config_lights and topic_lights):
-
+        if(self.pose and self.waypoints and config_lights and self.lights):
             # closest_wp_index = self.get_closest_waypoint(pose.pose)
             closest_wp_index = self.get_next_point_index(pose.pose, waypoints)
             closest_wp = waypoints[closest_wp_index]
