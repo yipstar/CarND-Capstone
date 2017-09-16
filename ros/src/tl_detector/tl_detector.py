@@ -14,6 +14,7 @@ import math
 import yaml
 
 STATE_COUNT_THRESHOLD = 3
+DISTANCE_TO_TRAFFIC_LIGHT_TO_START_CLASSIFYING = 50.0
 
 class TLDetector(object):
     def __init__(self):
@@ -232,14 +233,14 @@ class TLDetector(object):
 
                 dist = self.distance(waypoints, closest_wp_index, next_light_wp_index)
 
-                # only check if we're < 200 meters away from next closest light
-                if (dist < 200):
+                # only check if we're < DISTANCE_TO_TRAFFIC_LIGHT_TO_START_CLASSIFYING meters away from next closest light
+                if (dist < DISTANCE_TO_TRAFFIC_LIGHT_TO_START_CLASSIFYING):
                     config_light_state = self.get_light_state(config_light)
                     state = config_light_state
-                    # topic_light_state = topic_light.state
-                    # state = topic_light_state
+                    topic_light_state = topic_light.state
+                    state = topic_light_state
 
-                    rospy.logwarn("next_wp_light index: %s, state: %s, x: %s, y: %s, dist: %s", next_light_wp_index, state, topic_light.pose.pose.position.x, topic_light.pose.pose.position.y, dist)
+                    rospy.logwarn("next_wp_light index: %s, classify_state: %s, ground_truth_state: %s, x: %s, y: %s, dist: %s", next_light_wp_index, config_light_state, state, topic_light.pose.pose.position.x, topic_light.pose.pose.position.y, dist)
 
                     return next_light_wp_index, state
 

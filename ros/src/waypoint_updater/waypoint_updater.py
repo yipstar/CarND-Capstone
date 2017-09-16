@@ -64,9 +64,11 @@ class WaypointUpdater(object):
         self.time_prev = time_now
 
         # 10 MPH convert to mps
-        # target_velocity = 25 #MPH
-        # target_velocity = target_velocity * 0.44704
-        go_velocity = 10 # meters per second
+        go_velocity = 10
+        go_velocity = go_velocity * 0.44704
+
+        # for testing faster around 
+        # go_velocity = 10 # meters per second
 
         begin_decelerating_distance = 50.0
 

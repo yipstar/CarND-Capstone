@@ -14,7 +14,7 @@ class TLClassifier(object):
         # weights_file = "./light_classification/models/model.h5"
 
         model_file = "./light_classification/models/model_squeezenet.json"
-        weights_file = "./light_classification/models/model_squeezenet.h5"
+        weights_file = "./light_classification/models/model_squeezenet2.h5"
 
         #load json and create model
         json_file = open(model_file, 'r')
@@ -52,8 +52,9 @@ class TLClassifier(object):
             new_shape = (224, 224, 3)
 
             image_resized = scipy.misc.imresize(image, new_shape)
+            img = image_resized.transpose((-1, 0, 1))
 
-            x = np.expand_dims(image_resized, axis=0)
+            x = np.expand_dims(img, axis=0)
             # rospy.logwarn("shape of x: %s", x.shape)
 
             predictions = model.predict(x)

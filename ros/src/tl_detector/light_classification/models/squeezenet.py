@@ -29,7 +29,7 @@ np.random.seed(111)
 # dimensions of our images.
 img_width, img_height = 224, 224
 
-epochs = 100
+epochs = 1
 batch_size = 32
 nb_train_samples = 1790
 nb_valid_samples = 47
@@ -238,10 +238,10 @@ model.fit_generator(train_generator,
 
 # Rename layers for saving
 # TODO: this causes load_weights in tl_classifier to fail
-i = 0
-for layer in model.layers:
-    layer.name = "renamed_model_{0}".format(i)
-    i += 1
+# i = 0
+# for layer in model.layers:
+#     layer.name = "renamed_model_{0}".format(i)
+    # i += 1
 
 
 # serialize model to JSON
