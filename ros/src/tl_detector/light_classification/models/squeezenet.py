@@ -71,11 +71,11 @@ del y_train, y_valid
 def fire_module(x, filters, name="fire"):
     sq_filters, ex1_filters, ex2_filters = filters
     squeeze = Convolution2D(sq_filters, (1, 1), activation='relu', padding='same', name=name + "/squeeze1x1")(x)
+    
     expand1 = Convolution2D(ex1_filters, (1, 1), activation='relu', padding='same', name=name + "/expand1x1")(squeeze)
     expand2 = Convolution2D(ex2_filters, (3, 3), activation='relu', padding='same', name=name + "/expand3x3")(squeeze)
     x = Concatenate(axis=-1, name=name)([expand1, expand2])
     return x
-
 
 
 def build_squeezeNet(input_shape=(224,224,3)):
@@ -103,7 +103,7 @@ def build_squeezeNet(input_shape=(224,224,3)):
     model = Model(img_input, x, name="squeezenet")
     
     # Load the weights for the layers
-    file=h5py.File('../notop_squeezenet.h5','r')
+    file=h5py.File('notop_squeezenet.h5','r')
     weight = []
     
     for i in range(len(file.keys())):
@@ -137,7 +137,7 @@ def build_final_model(base_model):
 # Get the base model and add new layers
 base_model = build_squeezeNet()
 model = build_final_model(base_model)
-print(model.summary())
+# print(model.summary())
 
 ########################################################################################################################
 
@@ -235,6 +235,14 @@ model.fit_generator(train_generator,
 
 
 #######################################################################################################################
+
+# Rename layers for saving
+# TODO: this causes load_weights in tl_classifier to fail
+i = 0
+for layer in model.layers:
+    layer.name = "renamed_model_{0}".format(i)
+    i += 1
+
 
 # serialize model to JSON
 model_json = model.to_json()

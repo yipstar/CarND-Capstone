@@ -10,16 +10,20 @@ import tensorflow as tf
 class TLClassifier(object):
     def __init__(self):
 
-        model_dir = "./light_classification/models/vgg/"
+        # model_file = "./light_classification/models/model.json"
+        # weights_file = "./light_classification/models/model.h5"
+
+        model_file = "./light_classification/models/model_squeezenet.json"
+        weights_file = "./light_classification/models/model_squeezenet.h5"
 
         #load json and create model
-        json_file = open(model_dir + 'model.json', 'r')
+        json_file = open(model_file, 'r')
         loaded_model_json = json_file.read()
         json_file.close()
         loaded_model = model_from_json(loaded_model_json)
 
         # load weights into new model
-        loaded_model.load_weights(model_dir + "model.h5")
+        loaded_model.load_weights(weights_file)
         rospy.logwarn("Loaded model from disk")
 
         self.model = loaded_model
