@@ -249,9 +249,12 @@ model_json = model.to_json()
 with open("model_squeezenet.json", "w") as json_file:
     json_file.write(model_json)
 
-# serialize weights to HDF5
-model.save_weights("model_squeezenet.h5")
-print("Saved model to disk")
+# Save the weights of the model
+file = h5py.File('model_squeezenet.h5','w')
+weight = model.get_weights()
 
+for i in range(len(weight)):
+    file.create_dataset('weight'+str(i),data=weight[i])
+file.close()
 
 #######################################xo#############################################################################
