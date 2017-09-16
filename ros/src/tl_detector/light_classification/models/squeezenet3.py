@@ -27,6 +27,8 @@ from keras.layers import Flatten, Dropout
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.layers import AveragePooling2D
 
+from squeezenet_model3 import SqueezeNet
+
 def print_time(t0, s):
     """Print how much time has been spent
     @param t0: previous timestamp
@@ -154,21 +156,9 @@ height = 224
 early_stop = EarlyStopping(monitor='val_loss', mode='min', patience=10)
 
 t0 = print_time(t0, 'initialize data')
-base_model = km.SqueezeNet(nb_classes, inputs=(channels, height, width))
 
-# # Load the weights for the layers
-# file=h5py.File('notop_squeezenet.h5','r')
-# weight = []
+base_model = SqueezeNet(input_shape=(channels, height, width), classes=nb_classes, include_top=False)
 
-# for i in range(len(file.keys())):
-#     weight.append(file['weight'+str(i)][:])
-#     base_model.set_weights(weight)
-
-#     # Make the base layers non-trainable
-#     for layer in base_model.layers:
-#         layer.trainable = False
-
-# Add final classifier layers
 base_model_output = base_model.output
 fire9_dropout = Dropout(0.5, name='fire9_dropout')(base_model_output)
 conv10 = Convolution2D(
@@ -204,9 +194,9 @@ t0 = print_time(t0, 'train model')
 
 # serialize model to JSON
 model_json = model.to_json()
-with open("model_squeezenet2.json", "w") as json_file:
+with open("model_squeezenet3.json", "w") as json_file:
     json_file.write(model_json)
 
 # serialize weights to HDF5
-model.save_weights("model_squeezenet2.h5", overwrite=True)
+model.save_weights("model_squeezenet3.h5", overwrite=True)
 t0 = print_time(t0, 'saved model')

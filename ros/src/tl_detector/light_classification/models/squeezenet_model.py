@@ -144,17 +144,22 @@ def SqueezeNet(nb_classes, inputs=(3, 224, 224)):
         data_format="channels_first")(fire9_squeeze)
     merge9 = Concatenate(axis=1)([fire9_expand1, fire9_expand2])
 
-    fire9_dropout = Dropout(0.5, name='fire9_dropout')(merge9)
-    conv10 = Convolution2D(
-        nb_classes, (1, 1), kernel_initializer='glorot_uniform',
-        padding='valid', name='conv10',
-        data_format="channels_first")(fire9_dropout)
-    # The size should match the output of conv10
-    avgpool10 = AveragePooling2D(
-        (13, 13), name='avgpool10',
-        data_format="channels_first")(conv10)
 
-    flatten = Flatten(name='flatten')(avgpool10)
-    softmax = Activation("softmax", name='softmax')(flatten)
+    model = Model(input_img, merge9, name="squeezenet")
 
-    return Model(inputs=input_img, outputs=softmax)
+    return model
+
+    # fire9_dropout = Dropout(0.5, name='fire9_dropout')(merge9)
+    # conv10 = Convolution2D(
+    #     nb_classes, (1, 1), kernel_initializer='glorot_uniform',
+    #     padding='valid', name='conv10',
+    #     data_format="channels_first")(fire9_dropout)
+    # # The size should match the output of conv10
+    # avgpool10 = AveragePooling2D(
+    #     (13, 13), name='avgpool10',
+    #     data_format="channels_first")(conv10)
+
+    # flatten = Flatten(name='flatten')(avgpool10)
+    # softmax = Activation("softmax", name='softmax')(flatten)
+
+    # return Model(inputs=input_img, outputs=softmax)

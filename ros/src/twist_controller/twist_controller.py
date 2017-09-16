@@ -45,7 +45,7 @@ class TwistController(object):
 
         # rospy.logwarn('plv: %s pav: %s cv: %s', proposed_linear_velocity, proposed_angular_velocity,  current_linear_velocity)
 
-        rospy.logwarn('throttle: %s brake: %s steer: %s', throttle, brake,  steer)
+        # rospy.logwarn('throttle: %s brake: %s steer: %s', throttle, brake,  steer)
 
         return throttle, brake, steer
 
