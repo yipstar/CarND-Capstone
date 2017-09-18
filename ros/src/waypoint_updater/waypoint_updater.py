@@ -32,7 +32,7 @@ class WaypointUpdater(object):
         rospy.init_node('waypoint_updater')
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
-        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+        self.base_waypoints_sub = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
@@ -70,7 +70,7 @@ class WaypointUpdater(object):
         # for testing faster around 
         # go_velocity = 10 # meters per second
 
-        begin_decelerating_distance = 50.0
+        begin_decelerating_distance = 20.0
 
         current_velocity = 0
         if self.current_velocity:
@@ -82,7 +82,7 @@ class WaypointUpdater(object):
         target_velocity = go_velocity
 
         # ramp current velocity by 8/ms^2
-        ramp_rate = 8.0
+        ramp_rate = 5.0
 
         if (waypoints):
 
@@ -104,7 +104,7 @@ class WaypointUpdater(object):
                 dist = self.distance(waypoints, next_wp_index, stop_index)
 
                 # rospy.logwarn("upcoming_red_light_wp: %s, dist: %s", stop_index, dist)
-                if stop_index > next_wp_index and dist < begin_decelerating_distance:
+                if stop_index > next_wp_index and dist <= begin_decelerating_distance:
                     target_velocity = stop_velocity
 
             wp_vel = current_velocity
@@ -133,6 +133,7 @@ class WaypointUpdater(object):
 
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints.waypoints
+        self.base_waypoints_sub.unregister()
 
     def traffic_cb(self, msg):
         self.upcoming_red_light = msg.data

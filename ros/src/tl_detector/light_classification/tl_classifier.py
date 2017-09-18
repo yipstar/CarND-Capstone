@@ -10,11 +10,14 @@ import tensorflow as tf
 class TLClassifier(object):
     def __init__(self):
 
-        model_file = "./light_classification/models/model.json"
-        weights_file = "./light_classification/models/model.h5"
+        # model_file = "./light_classification/models/model.json"
+        # weights_file = "./light_classification/models/model.h5"
 
         # model_file = "./light_classification/models/model_squeezenet.json"
         # weights_file = "./light_classification/models/model_squeezenet2.h5"
+
+        model_file = "./light_classification/models/model_vgg_latest.json"
+        weights_file = "./light_classification/models/best_model.h5"
 
         #load json and create model
         json_file = open(model_file, 'r')
@@ -24,12 +27,13 @@ class TLClassifier(object):
 
         # load weights into new model
         loaded_model.load_weights(weights_file)
-        rospy.logwarn("Loaded model from disk")
 
         self.model = loaded_model
 
         # See https://github.com/fchollet/keras/issues/2397
         self.graph = tf.get_default_graph()
+
+        rospy.logwarn("Classification model loaded, this should only happen ONCE")
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image
@@ -61,7 +65,7 @@ class TLClassifier(object):
             predictions = model.predict(x)
             predicted_label = np.argmax(predictions)
 
-            rospy.logwarn("predicted_label: %s", predicted_label)
+            # rospy.logwarn("predicted_label: %s", predicted_label)
 
             # Labels need to be converted the labeled dataset labels don't match the TrafficLight refs.
             # In TrafficLgiht UNKNOWN=4, GREEN=2, YELLOW=1, and RED=0

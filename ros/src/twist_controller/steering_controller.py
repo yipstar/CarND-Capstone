@@ -22,6 +22,9 @@ class SteeringController(object):
 
         self.poly_pub = rospy.Publisher('/poly_pose', PoseStamped, queue_size=1)
 
+    def reset(self):
+        self.pid_steering_controller.reset()
+
     def control(self, proposed_linear_velocity, proposed_angular_velocity, current_linear_velocity, final_waypoints, current_pose, dt):
 
         # calculate predictive steer component

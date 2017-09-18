@@ -23,7 +23,11 @@ class TwistController(object):
 
     def deg2rad(self, degrees):
 	    radians = math.pi * degrees / 180
-	    return radians
+	    return radian
+
+    def reset(self):
+        self.steering_controller.reset()
+        self.throttle_controller.reset()
 
     def control(self, current_velocity, twist_cmd, final_waypoints, current_pose, dt):
 

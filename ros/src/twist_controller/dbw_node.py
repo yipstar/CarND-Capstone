@@ -90,6 +90,7 @@ class DBWNode(object):
 
     def dbw_enabled_cb(self, msg):
         self.dbw_enabled = msg.data
+        self.controller.reset()
 
     def loop(self):
         rate = rospy.Rate(10) # 50Hz
