@@ -65,8 +65,6 @@ class TLClassifier(object):
             predictions = model.predict(x)
             predicted_label = np.argmax(predictions)
 
-            # rospy.logwarn("predicted_label: %s", predicted_label)
-
             # Labels need to be converted the labeled dataset labels don't match the TrafficLight refs.
             # In TrafficLgiht UNKNOWN=4, GREEN=2, YELLOW=1, and RED=0
 
@@ -74,6 +72,8 @@ class TLClassifier(object):
                 predicted_label = 2
             elif predicted_label == 2:
                 predicted_label = 1
+
+            rospy.logwarn("predicted_label: %s", predicted_label)
 
             return predicted_label
             # return TrafficLight.UNKNOWN

@@ -197,10 +197,11 @@ class TLDetector(object):
         config_lights = self.config_lights
         topic_lights = self.lights
 
-        pose = self.pose
-        waypoints = self.waypoints.waypoints
-
         if(self.pose and self.waypoints and config_lights and self.lights):
+
+            pose = self.pose
+            waypoints = self.waypoints.waypoints
+
             # closest_wp_index = self.get_closest_waypoint(pose.pose)
             closest_wp_index = self.get_next_point_index(pose.pose, waypoints)
             closest_wp = waypoints[closest_wp_index]
@@ -232,6 +233,7 @@ class TLDetector(object):
             if next_light_wp_index > closest_wp_index:
 
                 dist = self.distance(waypoints, closest_wp_index, next_light_wp_index)
+                # dist = -1
 
                 # only check if we're < DISTANCE_TO_TRAFFIC_LIGHT_TO_START_CLASSIFYING meters away from next closest light
                 if (dist < DISTANCE_TO_TRAFFIC_LIGHT_TO_START_CLASSIFYING):
@@ -240,7 +242,7 @@ class TLDetector(object):
                     topic_light_state = topic_light.state
                     # state = topic_light_state
 
-                    rospy.logwarn("closest_wp_index: %s next_wp_light_index: %s, classify_state: %s, ground_truth_state: %s, x: %s, y: %s, dist: %s", closest_wp_index, next_light_wp_index, config_light_state, topic_light_state, topic_light.pose.pose.position.x, topic_light.pose.pose.position.y, dist)
+                    rospy.logwarn("closest_wp_index: %s next_wp_light_index: %s, classify_state: %s, ground_truth_state: %s, light_x: %s, light_y: %s, car_x: %s, car_y: %s, dist: %s", closest_wp_index, next_light_wp_index, config_light_state, topic_light_state, config_light.pose.pose.position.x, config_light.pose.pose.position.y, pose.pose.position.x, pose.pose.position.y, dist)
 
                     return next_light_wp_index, state
 
@@ -267,7 +269,9 @@ class TLDetector(object):
         dist = 0
         dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
         for i in range(wp1, wp2+1):
-            dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
+            wp_dist = dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
+            # rospy.logwarn("wp1: %s, wp2: %s, wp_dist: %s", wp1, i, wp_dist)
+            dist += wp_dist
             wp1 = i
         return dist
 
