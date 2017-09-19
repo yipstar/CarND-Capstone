@@ -231,6 +231,7 @@ class TLDetector(object):
             next_light_wp_index = next_light_wp_index_from_config
             # next_light_wp_index = next_light_wp_index_from_topic
 
+            # if True:
             if next_light_wp_index > closest_wp_index:
 
                 dist = self.distance(waypoints, closest_wp_index, next_light_wp_index)
