@@ -4,6 +4,7 @@ import os
 from keras.models import model_from_json
 import numpy as np
 from keras.preprocessing import image
+from keras.applications.vgg16 import preprocess_input
 import scipy
 import tensorflow as tf
 
@@ -58,11 +59,13 @@ class TLClassifier(object):
 
             new_shape = (224, 224, 3)
 
-            image_resized = scipy.misc.imresize(image, new_shape)
+            image_resized = scipy.misc.imresize(image, new_shape).astype(np.float32)
             img = image_resized
+            # rospy.logwarn("image_resized type: %s", image_resized.dtype)
             # img = image_resized.transpose((-1, 0, 1))
 
             x = np.expand_dims(img, axis=0)
+            x = preprocess_input(x)
             # rospy.logwarn("shape of x: %s", x.shape)
 
             predictions = model.predict(x)
