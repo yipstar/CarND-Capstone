@@ -1,3 +1,45 @@
+In waypoint_loader/launch/waypoint_loader.launch, I added a new parameter: name="yaw_is_in_degrees" value="true".  Then in waypoint_loader.py, I put the line: self.yaw_is_in_degrees = rospy.get_param('~yaw_is_in_degrees', False)   . What this does is checks for the parameter, and if it is present, uses it.  If the parameter is not set in the launch file, then its defaults to false.  So in theory, self.yaw_is_in_degrees should be true for the simulator track, and false for the real track.  Later in waypoint_loader.py, the actual loader checks this value to decide whether to do the conversion or not.  By the way, you can use the builtin python function math.radians() to do the conversion; you don't need to write your own formula with pi and 180.
+
+Carlos Galvez [12:29 AM]
+Anyone got the YawController working with `steer_ratio=2.67`? After changing it to 14.8 (like in Carla) it works like a charm.
+
+James Jackson [6:25 PM] 
+@anthony-s Thanks ! Here are my training and validation TFRecords if anyone wants to play with them. I used RectLabel on Mac to annotate in PASCAL VOC format, and created a script to process them into TFRecords. There are 187 files in total, 70% used for training, 30% used for validation. Note that there is only a single label (traffic light). Finding the color is a separate task. https://drive.google.com/drive/folders/0B_SXDGKPsMsfSXJzUzhIV3ZQNUU?usp=sharing
+
+Did anyone experience car go off the road at approximately waypoints from 6000?
+
+
+7 replies
+Anoop Ramakrishna [12 hours ago] 
+I think there is something in the simulator, where after 6000 points it starts asking for more system resources, I was facing issues around 6000, when I started running the simulator on another PC this problem went away.
+
+
+yusun Liu [11 hours ago] 
+Thanks for your feedback. If resource is issue,  I even did not start the TL_Detector yet.
+
+
+Faraz Khan [6 hours ago] 
+@etendue Mine would go completely stupid around 5000 and the problem was that I was comparing car heading to way point heading directly and thats not correct. Theres a time when the car switches from 3rads to -3rads and even though both those angles are equal you need to calculate the diff correctly
+
+
+yusun Liu [1 hour ago] 
+Hi @faraz that could be the case, somehow I am comparing the car heading and waypoint heading to get next waypoint.  I don't know why that is not correct.
+
+
+Faraz Khan [1 hour ago] 
+@etendue mine seems to randomly go astray around 6700 as well ive noticed. Its random though
+
+
+Faraz Khan [1 hour ago] 
+So it doesn't sometime, but whenever it does its around that mark :thinking_face:
+
+
+Faraz Khan [28 minutes ago] 
+@etendue this helped: https://gamedev.stackexchange.com/questions/4467/comparing-angles-and-working-out-the-difference
+gamedev.stackexchange.com
+Comparing angles and working out the difference
+I want to compare angles and get an idea of the distance between them. For this application, I'm working in degrees, but it would also work for radians and grads. The problem with angles is that they
+
 TODO:
 
 https://github.com/udacity/CarND-Capstone/issues/31
