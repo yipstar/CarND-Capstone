@@ -88,7 +88,8 @@ class WaypointUpdater(object):
 
             # next_wp_index = self.next_waypoint(current_pose, waypoints)
             next_wp_index = self.next_waypoint2(current_pose, waypoints)
-            # rospy.logwarn("next_wp_index: %s", next_wp_index)
+            next_wp = waypoints[next_wp_index]
+            # rospy.logwarn("next_wp_index: %s, car_x: %s, car_y: %s, wp_x: %s, wp_y: %s", next_wp_index, current_pose.position.x, current_pose.position.y, next_wp.pose.pose.position.x, next_wp.pose.pose.position.y)
 
             final_waypoints = waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS]
 

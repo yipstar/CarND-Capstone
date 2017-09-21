@@ -79,7 +79,7 @@ class TLClassifier(object):
             elif predicted_label == 2:
                 predicted_label = 1
 
-            rospy.logwarn("predicted_label: %s", predicted_label)
+            # rospy.logwarn("predicted_label: %s", predicted_label)
 
             return predicted_label
             # return TrafficLight.UNKNOWN

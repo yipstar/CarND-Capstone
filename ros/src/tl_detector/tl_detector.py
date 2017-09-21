@@ -103,25 +103,6 @@ class TLDetector(object):
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
-    def get_closest_waypoint(self, pose):
-        """Identifies the closest path waypoint to the given position
-            https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
-        Args:
-            pose (Pose): position to match a waypoint to
-
-        Returns:
-            int: index of the closest waypoint in self.waypoints
-
-        """
-
-        if self.waypoints:
-            waypoints = self.waypoints.waypoints
-            next_wp_index = self.get_next_point_index(pose, waypoints)
-            return next_wp_index
-
-        return 0
-
-
     def project_to_image_plane(self, point_in_world):
         """Project point from 3D world coordinates to 2D camera image location
 
@@ -204,8 +185,8 @@ class TLDetector(object):
             pose = self.pose
             waypoints = self.waypoints.waypoints
 
-            # closest_wp_index = self.get_closest_waypoint(pose.pose)
-            closest_wp_index = self.get_next_point_index(pose.pose, waypoints)
+            closest_wp_index = self.get_closest_waypoint(pose.pose, waypoints)
+            # closest_wp_index = self.get_next_point_index(pose.pose, waypoints)
             closest_wp = waypoints[closest_wp_index]
 
             # rospy.logwarn("closest_wp index:%s, x:%s, y:%s, car_x: %s, car_y: %s", closest_wp_index, closest_wp.pose.pose.position.x, closest_wp.pose.pose.position.y, pose.pose.position.x, pose.pose.position.y)
@@ -232,8 +213,16 @@ class TLDetector(object):
             next_light_wp_index = next_light_wp_index_from_config
             # next_light_wp_index = next_light_wp_index_from_topic
 
+            next_light_wp = waypoints[next_light_wp_index]
+
+            # Ensure next_light_wp_index is in front of the car, take heading into account
+
+            is_next_light_wp_in_front_of_the_car = self.is_next_waypoint_in_front_of_the_car(pose.pose, next_light_wp)
+            # rospy.logwarn("is next_light_wp in front of the car: %s", is_next_light_wp_in_front_of_the_car)
+
             # if True:
-            if next_light_wp_index > closest_wp_index:
+            # if next_light_wp_index > closest_wp_index:
+            if is_next_light_wp_in_front_of_the_car:
 
                 dist = self.distance(waypoints, closest_wp_index, next_light_wp_index)
                 # dist = -1
@@ -267,6 +256,32 @@ class TLDetector(object):
 
         distances = np.sqrt(x_dist*x_dist + y_dist*y_dist)
         return np.argmin(distances)
+
+    def is_next_waypoint_in_front_of_the_car(self, pose, next_wp):
+
+        quaternion = pose.orientation
+        explicit_quat = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
+        euler = tf.transformations.euler_from_quaternion(explicit_quat)
+        car_yaw = euler[2]
+
+        shift_x = next_wp.pose.pose.position.x - pose.position.x
+        shift_y = next_wp.pose.pose.position.y - pose.position.y
+
+        return (shift_x * math.cos(0 - car_yaw) - shift_y * math.sin(0 - car_yaw)) > 0
+
+    def get_closest_waypoint(self, pose, waypoints):
+        """Identifies the closest path waypoint to the given position
+            https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
+        Args:
+            pose (Pose): position to match a waypoint to
+
+        Returns:
+            int: index of the closest waypoint in self.waypoints
+
+        """
+
+        next_wp_index = self.get_next_point_index(pose, waypoints)
+        return next_wp_index
 
     def distance(self, waypoints, wp1, wp2):
         dist = 0
