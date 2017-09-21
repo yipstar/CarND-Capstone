@@ -28,7 +28,7 @@ class SteeringController(object):
     def control(self, proposed_linear_velocity, proposed_angular_velocity, current_linear_velocity, final_waypoints, current_pose, dt):
 
         # calculate predictive steer component
-        yaw_steer = -self.yaw_controller.get_steering(proposed_linear_velocity, proposed_angular_velocity, current_linear_velocity)
+        yaw_steer = self.yaw_controller.get_steering(proposed_linear_velocity, proposed_angular_velocity, current_linear_velocity)
 
         # next fit polynomial to waypoints, shift, rotate, and calc cte
         # https://www.mathworks.com/matlabcentral/answers/93554-how-can-i-rotate-a-set-of-points-in-a-plane-by-a-certain-angle-about-an-arbitrary-point
@@ -104,9 +104,11 @@ class SteeringController(object):
         # rospy.logwarn("CTE2: %s", cte2)
 
         # steer = yaw_steer + pi_steer
-        steer = pid_steer
         # steer = pi_steer
         # steer = pid_steer - yaw_steer
         # steer = yaw_steer
+        # steer = (yaw_steer + pid_steer) / 2.0
+
+        steer = pid_steer
 
         return steer
