@@ -137,7 +137,6 @@ def main():
         help='Input folder where output are located')
 
     group = parser.add_argument_group('data process')
-    group.add_argument('-c', '--copy', type=str, nargs='?', help='generating the data directory by copy from camera directory')
     group.add_argument('-op', '--operation', type=str, nargs='?', default='clean_csv', help='merge,split,clean_images,clean_csv')
 
     args = parser.parse_args()

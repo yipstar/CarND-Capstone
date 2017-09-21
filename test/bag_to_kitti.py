@@ -57,7 +57,8 @@ POS_COLS = ["timestamp", "tx", "ty", "tz", "rx", "ry", "rz"]
 #added by BinLiu 170903
 _NEXT_LIGHT = -1    
 _NEXT_LIGHT_STATE = 4    
-_NEXT_LIGHT_DISTANCE = -1
+# _NEXT_LIGHT_DISTANCE = math.inf   # math.inf only works in python 3.5, https://github.com/vitords/HoeffdingTree/issues/1
+_NEXT_LIGHT_DISTANCE = float('inf')
 _CURRENT_POSE = (-1,-1)
 #end add 
 
@@ -81,7 +82,7 @@ def camera2dict(timestamp, msg, write_results, camera_dict):
         camera_dict["filename"].append(write_results['filename'])
         camera_dict["light"].append(0 if _NEXT_LIGHT == -1 else _NEXT_LIGHT)        
         camera_dict["state"].append(_NEXT_LIGHT_STATE) 
-        camera_dict["distance"].append(-1 if _NEXT_LIGHT_STATE == config.light_state['UNKNOW'] else _NEXT_LIGHT_DISTANCE)                                              
+        camera_dict["distance"].append( float('inf') if _NEXT_LIGHT_STATE == config.light_state['UNKNOW'] else _NEXT_LIGHT_DISTANCE)                                              
 
 def gps2dict(timestamp, msg, gps_dict):
     gps_dict["timestamp"].append(timestamp)
@@ -89,22 +90,10 @@ def gps2dict(timestamp, msg, gps_dict):
     gps_dict["long"].append(msg.longitude)
     gps_dict["alt"].append(msg.altitude)
 
-
 def pose2dict(timestamp, msg, pose_dict):
     pose_dict["timestamp"].append(timestamp)
     pose_dict["x"].append(msg.pose.position.x)
     pose_dict["y"].append(msg.pose.position.y)
-    # pose_dict["tz"].append(msg.pose.position.z)
-    # rotq = kd.Rotation.Quaternion(
-    #     msg.pose.orientation.x,
-    #     msg.pose.orientation.y,
-    #     msg.pose.orientation.z,
-    #     msg.pose.orientation.w)
-    # rot_xyz = rotq.GetRPY()
-    # pose_dict["rx"].append(rot_xyz[0])
-    # pose_dict["ry"].append(rot_xyz[1])
-    # pose_dict["rz"].append(rot_xyz[2])
-    # print(pose_dict)
 
 def tl2dict(timestamp, tl, tl_dict):
     tl_dict["timestamp"].append(timestamp)
@@ -114,30 +103,6 @@ def tl2dict(timestamp, tl, tl_dict):
     tl_dict["state"].append(tl.state)
     global _NEXT_LIGHT_STATE      
     _NEXT_LIGHT_STATE = tl.state
-    # print(tl_dict)
-
-# def tf2dict(timestamp, tf, tf_dict):
-#     tf_dict["timestamp"].append(timestamp)
-#     tf_dict["tx"].append(tf.translation.x)
-#     tf_dict["ty"].append(tf.translation.y)
-#     tf_dict["tz"].append(tf.translation.z)
-#     rotq = kd.Rotation.Quaternion(
-#         tf.rotation.x,
-#         tf.rotation.y,
-#         tf.rotation.z,
-#         tf.rotation.w)
-#     rot_xyz = rotq.GetRPY()
-#     tf_dict["rx"].append(rot_xyz[0])
-#     tf_dict["ry"].append(rot_xyz[1])
-#     tf_dict["rz"].append(rot_xyz[2])
-
-
-# def imu2dict(timestamp, msg, imu_dict):
-#     imu_dict["timestamp"].append(timestamp)
-#     imu_dict["ax"].append(msg.linear_acceleration.x)
-#     imu_dict["ay"].append(msg.linear_acceleration.y)
-#     imu_dict["az"].append(msg.linear_acceleration.z)
-
 
 def get_yaw(p1, p2):
     return math.atan2(p1[1] - p2[1], p1[0] - p2[0])
@@ -612,25 +577,33 @@ def get_closest_light(pose):
     nLight = 0
     count = 0
     margin = 8
-
     for light in config.light_positions:  
         dDist = distance(pose, light) 
         if dDist < dLen:                               
             if nLight >= 0 and nLight <=3:
                 if pose[0] > light[0] + margin: 
                     pass
+                elif pose[0] > light[0] : 
+                    dLen = -dDist
+                    nLight = count                                                    
                 else:
                     dLen = dDist
                     nLight = count                                
-            elif nLight >= 4 and nLight <=5:
-                if pose[0] < light[0] + margin : 
+            elif nLight >= 4 and nLight <=5:                   # FIXME, Fifth, the sixth traffic light calculation has problem, in the final data set should exclude them. 
+                if pose[0] < light[0]:
                     pass
+                elif pose[0] < light[0] - margin : 
+                    dLen = -dDist
+                    nLight = count                      
                 else:
                     dLen = dDist            
                     nLight = count                                                         
             elif nLight >= 6 and nLight <=7:
-                if pose[1] < light[1] + margin: 
+                if pose[1] < light[1] : 
                     pass
+                elif pose[0] < light[1] - margin : 
+                    dLen = -dDist
+                    nLight = count                                          
                 else:
                     dLen = dDist             
                     nLight = count                                                        
@@ -682,8 +655,6 @@ def main():
 
     include_images = False if msg_only else True
 
-    # filter_topics = CAMERA_TOPICS + CAP_FRONT_RTK_TOPICS + CAP_REAR_RTK_TOPICS \
-    #     + CAP_FRONT_GPS_TOPICS + CAP_REAR_GPS_TOPICS
 
     filter_topics = CAMERA_TOPICS + [TF_LIGHTS_TOPIC]  + [CAR_POSE_TOPIC] 
 
@@ -721,12 +692,10 @@ def main():
 
         outdir = os.path.join(base_outdir, bs.get_name(unique_paths))
         get_outdir(outdir)
+
         if include_images:
             camera_outdir = get_outdir(outdir, "camera")
-            red_outdir = get_outdir(camera_outdir, "red")
-            green_outdir = get_outdir(camera_outdir, "green")
-            yellow_outdir = get_outdir(camera_outdir, "yellow")
-            unknow_outdir = get_outdir(camera_outdir, "unknow")                                                
+            
         bs.write_infos(outdir)
         readers = bs.get_readers()
         stats_acc = defaultdict(int)
@@ -748,27 +717,35 @@ def main():
             if topic in CAMERA_TOPICS:
                 write_results = {}
                 if include_images:
-                    if stats['msg_count'] < 15:
-                        pass
-                    else:
-                        if _NEXT_LIGHT_DISTANCE > 195:
-                            _NEXT_LIGHT_STATE = config.light_state['UNKNOW']
+                #     if stats['msg_count'] < 15:
+                #         pass
+                #     else:
+                       
+                #         if _NEXT_LIGHT_DISTANCE > 195:
+                #             _NEXT_LIGHT_STATE = config.light_state['UNKNOW']
                         
-                        if _NEXT_LIGHT_STATE == config.light_state['RED']:
-                            write_results = image_bridge.write_image(red_outdir, msg,ts_recorded, fmt=img_format)
-                        elif _NEXT_LIGHT_STATE == config.light_state['GREEN']:
-                            write_results = image_bridge.write_image(green_outdir, msg,ts_recorded, fmt=img_format)  
-                        elif _NEXT_LIGHT_STATE == config.light_state['YELLOW']:
-                            write_results = image_bridge.write_image(yellow_outdir, msg,ts_recorded, fmt=img_format)                            
-                        elif _NEXT_LIGHT_STATE == config.light_state['UNKNOW']:
-                            write_results = image_bridge.write_image(unknow_outdir, msg,ts_recorded, fmt=img_format)                            
-                        else:
-                            print ("Ooooops, Wrong Light State:",_NEXT_LIGHT_STATE)
+                #         # if _NEXT_LIGHT_STATE == config.light_state['RED']:
+                #         #     write_results = image_bridge.write_image(red_outdir, msg,ts_recorded, fmt=img_format)
+                #         # elif _NEXT_LIGHT_STATE == config.light_state['GREEN']:
+                #         #     write_results = image_bridge.write_image(green_outdir, msg,ts_recorded, fmt=img_format)  
+                #         # elif _NEXT_LIGHT_STATE == config.light_state['YELLOW']:
+                #         #     write_results = image_bridge.write_image(yellow_outdir, msg,ts_recorded, fmt=img_format)                            
+                #         # elif _NEXT_LIGHT_STATE == config.light_state['UNKNOW']:
+                #         #     write_results = image_bridge.write_image(unknow_outdir, msg,ts_recorded, fmt=img_format)                            
+                #         # else:
+                #         #     print ("Ooooops, Wrong Light State:",_NEXT_LIGHT_STATE)
 
-                        write_results['filename'] = os.path.relpath(write_results['filename'], outdir) 
-                        camera2dict(timestamp, msg, write_results, cap_data['camera'])
-                        stats['img_count'] += 1
-                stats['msg_count'] += 1                
+                #         write_results = image_bridge.write_image(camera_outdir,msg, ts_recorded, fmt=img_format)
+                #         write_results['filename'] = os.path.relpath(write_results['filename'], outdir) 
+                #         camera2dict(timestamp, msg, write_results, cap_data['camera'])
+                #         stats['img_count'] += 1
+                # stats['msg_count'] += 1                
+
+                    write_results = image_bridge.write_image(camera_outdir,msg, ts_recorded, fmt=img_format)
+                    write_results['filename'] = os.path.relpath(write_results['filename'], outdir) 
+                    camera2dict(timestamp, msg, write_results, cap_data['camera'])
+                    stats['img_count'] += 1
+                    stats['msg_count'] += 1                                
 
             elif topic in TF_LIGHTS_TOPIC:
                 _NEXT_LIGHT, _NEXT_LIGHT_DISTANCE = get_closest_light(_CURRENT_POSE)  

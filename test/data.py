@@ -1,4 +1,5 @@
 import matplotlib.image as mpimg
+import os
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,59 +15,58 @@ class DataSet(object):
 		"""
 		log_img_paths: a list of tuple (path_to_log.csv, path_to_IMG_folder)
 		"""
-		# self.non_vehicles = []
-		# self.vehicles = []
-
-		# self.red = []
-		# self.green = []		
-		# self.yellow = []				
-		# self.unknow = []						
-		# # self.dict = {}
-		# self.dict =  defaultdict(lambda: defaultdict(list))
-		# self.data = defaultdict(lambda: defaultdict(list))
 		self.data = defaultdict(list)
-		 
 		self.data_pickle='data.p'
 
-	def load_data(self, img_paths):
-		for imagelist_file, image_folder in img_paths:
+	def load_data(self, img_paths=config.train_data):
 
+		for imagelist_file in img_paths:	
 			with open(imagelist_file, 'r') as f:
 				lines = f.readlines()
 
 			for line in lines:
-				line = line[:-1]  # strip trailing newline
+				parts = line.split(',')				
+				# line =   # strip trailing newline
+				# print (config.data_dir["base_dir"] + os.sep + parts[0])
+				img_path = config.data_dir["base_dir"] + os.sep + parts[0]
+				distance =  parts[1][:-1]
+				img = mpimg.imread(img_path)
+				item = [img,distance]
 
-				# img = cv2.imread(line)
-				# img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-				# print(line) 								
-				img = mpimg.imread(config.data_dir["base_dir"] + line)
+				# if img_path.find("red") != -1:
+				# 	self.data['red'].append(zip(img,float(distance)) )
+				# elif img_path.find("green") != -1:
+				# 	self.data['green'].append(zip(img,float(distance)) )
+				# elif img_path.find("yellow") != -1:
+				# 	self.data['yellow'].append(zip(img,float(distance)) )
+				# elif img_path.find("unknow") != -1:
+				# 	self.data['unknow'].append(zip(img,float(distance)) )
+				# else:
+				# 	print("OooooooooooPs! Wrong data: ", line)
 
-
-				if line.find("red") != -1:
-					self.data['red'].append(img)
-				elif line.find("green") != -1:
-					self.data['green'].append(img)
-				elif line.find("yellow") != -1:
-					self.data['yellow'].append(img)
-				elif line.find("unknow") != -1:
-					self.data['unknow'].append(img)
+				if img_path.find("red") != -1:
+					self.data['red'].append(item)
+				elif img_path.find("green") != -1:
+					self.data['green'].append(item)
+				elif img_path.find("yellow") != -1:
+					self.data['yellow'].append(item)
+				elif img_path.find("unknow") != -1:
+					self.data['unknow'].append(item)
 				else:
-					print("OooooooooooPs! Wrong data: ", line)
-				
+					print("OooooooooooPs! Wrong data: ", line)				
 
 	def save(self):
 		# Save to pickle file
 		# self.dict = {'non_vehicles': np.array(self.non_vehicles), 'vehicles': np.array(self.vehicles)}
-		with open(config.data_dir["output"] + self.data_pickle, 'wb') as f:
+		with open(config.data_dir["output"] + os.sep + self.data_pickle, 'wb') as f:
 			pickle.dump(self.data, f)
 
 		print("Finished save data ...")
 		return self
 
-	def restore(self):
+	def restore(self, path = config.data_dir["output"] ):
 		# Save to pickle file
-		self.data = pickle.load(open(config.data_dir["output"] + self.data_pickle, "rb" ) )
+		self.data = pickle.load(open(path + os.sep + self.data_pickle, "rb" ) )
 		print("Finished restore data ...")		
 		return self
 
@@ -87,3 +87,13 @@ class DataSet(object):
 
 		plt.show()
 		return		
+
+def main():
+	dataset = DataSet()
+	dataset.load_data(config.train_data)
+	dataset.save()	
+	# dataset.restore()
+	dataset.display_hist_classes()	
+
+if __name__ == '__main__':
+    main()		

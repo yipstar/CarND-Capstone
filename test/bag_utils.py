@@ -62,7 +62,7 @@ class ImageBridge:
             #     cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
             #     cv2.imwrite(image_filename, cv_image)
 
-            msg.encoding = "rgb8"                     
+            # msg.encoding = "rgb8"                     
             cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
             cv2.imwrite(image_filename, cv_image)
 
