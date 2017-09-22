@@ -17,11 +17,14 @@ class TLClassifier(object):
         # model_file = "./light_classification/models/model_squeezenet.json"
         # weights_file = "./light_classification/models/model_squeezenet2.h5"
 
-        model_file = "./light_classification/models/model_vgg_latest.json"
-        weights_file = "./light_classification/models/best_model.h5"
+        # model_file = "./light_classification/models/model_vgg_latest.json"
+        # weights_file = "./light_classification/models/best_model.h5"
 
         # model_file = "./light_classification/models/model_vgg_latest.json"
         # weights_file = "./light_classification/models/latest_weights.h5"
+
+        model_file = "./light_classification/models/vgg_model_latest.json"
+        weights_file = "./light_classification/models/vgg_weights_latest.h5"
 
         #load json and create model
         json_file = open(model_file, 'r')
@@ -74,10 +77,10 @@ class TLClassifier(object):
             # Labels need to be converted the labeled dataset labels don't match the TrafficLight refs.
             # In TrafficLgiht UNKNOWN=4, GREEN=2, YELLOW=1, and RED=0
 
-            if predicted_label == 1:
-                predicted_label = 2
-            elif predicted_label == 2:
-                predicted_label = 1
+            # if predicted_label == 1:
+            #     predicted_label = 2
+            # elif predicted_label == 2:
+            #     predicted_label = 1
 
             # rospy.logwarn("predicted_label: %s", predicted_label)
 
