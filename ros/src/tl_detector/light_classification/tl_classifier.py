@@ -24,7 +24,8 @@ class TLClassifier(object):
         # weights_file = "./light_classification/models/latest_weights.h5"
 
         model_file = "./light_classification/models/vgg_model_latest.json"
-        weights_file = "./light_classification/models/vgg_weights_latest.h5"
+        # weights_file = "./light_classification/models/vgg_weights_latest.h5"
+        weights_file = "./light_classification/models/latest_weights_with_momentum.h5"
 
         #load json and create model
         json_file = open(model_file, 'r')
