@@ -31,7 +31,7 @@ np.random.seed(111)
 # dimensions of our images.
 img_width, img_height = 224, 224
 
-epochs = 100
+epochs = 120
 batch_size = 32
 
 # Define paths for training and validation images
@@ -166,10 +166,10 @@ valid_generator = valid_data_gen()
 
 
 # Add an optimizer
-opt = SGD(lr=1e-4)
+opt = SGD(lr=1e-4, momentum=0.9)
 
 # Instantiate early stopping and model checkpoint
-early_stop = EarlyStopping(monitor='val_loss', mode='min', patience=10)
+early_stop = EarlyStopping(monitor='val_loss', mode='min', patience=20)
 
 
 ###################################################################################################
