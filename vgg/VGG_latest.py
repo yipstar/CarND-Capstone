@@ -31,18 +31,14 @@ np.random.seed(111)
 # dimensions of our images.
 img_width, img_height = 224, 224
 
-epochs = 30
+epochs = 100
 batch_size = 32
-nb_train_samples = 1790
-nb_valid_samples = 47
 
 # Define paths for training and validation images
 train_img_path = './training/'
 val_img_path = './validation/'
 
-
 #######################################################################################################
-
 
 
 # Read the training and validation file containing name and label of all the images
