@@ -46,8 +46,8 @@ val_img_path = './validation/'
 
 
 # Read the training and validation file containing name and label of all the images
-train = pd.read_csv('site_train.csv')
-valid = pd.read_csv('site_valid.csv')
+train = pd.read_csv('train.csv')
+valid = pd.read_csv('valid.csv')
 
 nb_train_samples = len(train)
 nb_valid_samples = len(valid)
