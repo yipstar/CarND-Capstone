@@ -46,11 +46,13 @@ val_img_path = './validation/'
 
 
 # Read the training and validation file containing name and label of all the images
-train = pd.read_csv('train.csv')
-valid = pd.read_csv('valid.csv')
+train = pd.read_csv('site_train.csv')
+valid = pd.read_csv('site_valid.csv')
+
+nb_train_samples = len(train)
+nb_valid_samples = len(valid)
 
 print("Number of training pairs : {}  Validation pairs : {} : ".format(len(train), len(valid)))
-
 
 x_train = train['image']
 y_train = train['label']
@@ -101,7 +103,7 @@ def train_data_gen():
     batch_images = np.zeros((batch_size, 224,224,3), dtype=np.float32)
     batch_labels = np.zeros((batch_size,3), dtype=np.int8)
     count = 0
-    
+
     while 1:
         # Select samples randomly
         i = np.random.randint(len(x_train))
@@ -111,7 +113,7 @@ def train_data_gen():
         img = preprocess_input(img)
         img = np.squeeze(img)
         label = tr_labels[i]
-        
+
         # Do a random augmentation
         j = np.random.randint(3)
         if j==0:
@@ -120,12 +122,12 @@ def train_data_gen():
             img = aug.random_shear(img, 0.2)
         elif j==2:
             img = aug.random_zoom(img, (0.2, 0.2))
-        
+
         # Add the file and label to the arrays
         batch_images[count] = img
         batch_labels[count] = label
         count +=1
-        
+
         if count == batch_size:
             count = 0
             yield batch_images, batch_labels
@@ -139,7 +141,7 @@ def valid_data_gen():
     batch_images = np.zeros((batch_size, 224,224,3), dtype=np.float32)
     batch_labels = np.zeros((batch_size,3), dtype=np.int8)
     count = 0
-    
+
     while 1:
         for i in range(len(x_valid)):
             img = image.load_img(val_img_path + x_valid[i], target_size=(224,224))
@@ -152,7 +154,7 @@ def valid_data_gen():
             batch_images[count] = img
             batch_labels[count] = label
             count +=1
-        
+
             if count == batch_size:
                 count = 0
                 yield batch_images, batch_labels
@@ -168,7 +170,7 @@ valid_generator = valid_data_gen()
 
 
 # Add an optimizer
-opt = Adam(lr=1e-4)
+opt = SGD(lr=1e-4)
 
 # Instantiate early stopping and model checkpoint
 early_stop = EarlyStopping(monitor='val_loss', mode='min', patience=10)
@@ -187,11 +189,5 @@ model.fit_generator(train_generator,
                     validation_steps=nb_valid_samples // batch_size,
                     callbacks=[early_stop])
 
-
-
-# Save weights 
-# model.save_weights('latest_weights.h5')
-
-
-
-
+# Save weights
+model.save_weights('latest_weights.h5')
