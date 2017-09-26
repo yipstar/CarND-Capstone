@@ -48,6 +48,8 @@ class DBWNode(object):
         steer_ratio = rospy.get_param('~steer_ratio', 14.8)
         max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
+        max_throttle = rospy.get_param('~max_throttle', 0.8)
+        max_brake = rospy.get_param('~max_brake', -0.8)
 
         self.steer_pub = rospy.Publisher('/vehicle/steering_cmd',
                                          SteeringCmd, queue_size=1)
@@ -58,7 +60,7 @@ class DBWNode(object):
 
         min_speed = 0
 
-        self.controller = TwistController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
+        self.controller = TwistController(vehicle_mass, wheel_radius, wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle, max_throttle, max_brake, brake_deadband)
 
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
@@ -128,7 +130,7 @@ class DBWNode(object):
 
         bcmd = BrakeCmd()
         bcmd.enable = True
-        bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
+        bcmd.pedal_cmd_type = BrakeCmd.CMD_PERCENT
         bcmd.pedal_cmd = brake
         self.brake_pub.publish(bcmd)
 

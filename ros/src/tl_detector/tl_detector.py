@@ -14,7 +14,7 @@ import math
 import yaml
 
 STATE_COUNT_THRESHOLD = 1
-DISTANCE_TO_TRAFFIC_LIGHT_TO_START_CLASSIFYING = 50.0
+DISTANCE_TO_TRAFFIC_LIGHT_TO_START_CLASSIFYING = 80.0
 
 class TLDetector(object):
     def __init__(self):

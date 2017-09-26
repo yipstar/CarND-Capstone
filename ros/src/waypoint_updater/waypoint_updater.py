@@ -42,6 +42,7 @@ class WaypointUpdater(object):
 
 
         self.current_pose = None
+        self.base_waypoints = None
         self.waypoints = None
         self.upcoming_red_light = None
         self.current_velocity = None
@@ -67,10 +68,10 @@ class WaypointUpdater(object):
         go_velocity = 10
         go_velocity = go_velocity * 0.44704
 
-        # for testing faster around 
+        # for testing faster around
         # go_velocity = 10 # meters per second
 
-        begin_decelerating_distance = 20.0
+        begin_decelerating_distance = 40.0
 
         current_velocity = 0
         if self.current_velocity:
@@ -81,7 +82,7 @@ class WaypointUpdater(object):
         # assume go unless red traffic light
         target_velocity = go_velocity
 
-        # ramp current velocity by 8/ms^2
+        # ramp current velocity by 2/ms^2
         ramp_rate = 5.0
 
         if (waypoints):
@@ -91,30 +92,57 @@ class WaypointUpdater(object):
             next_wp = waypoints[next_wp_index]
             # rospy.logwarn("next_wp_index: %s, car_x: %s, car_y: %s, wp_x: %s, wp_y: %s", next_wp_index, current_pose.position.x, current_pose.position.y, next_wp.pose.pose.position.x, next_wp.pose.pose.position.y)
 
-            final_waypoints = waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS]
+            final_waypoints = list(waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS])
 
             # ranges between 200 and 100 meters depending on track location
             # final_waypoints_distance = self.distance(waypoints, next_wp_index, next_wp_index + LOOKAHEAD_WPS)
             # rospy.logwarn("final_waypoints distance: %s", final_waypoints_distance)
 
             dist = None
-            wp_offset = 0 # stop 2 waypoints ahead of the light
+            wp_offset = 0 # use to stop waypoints ahead of the light
+
+            wp_vel = current_velocity
+
+            # Stopping
             if self.upcoming_red_light and self.upcoming_red_light != -1:
 
                 stop_index = self.upcoming_red_light - wp_offset
                 dist = self.distance(waypoints, next_wp_index, stop_index)
 
-                # rospy.logwarn("upcoming_red_light_wp: %s, dist: %s", stop_index, dist)
+                rospy.logwarn("upcoming_red_light_wp: %s, dist: %s", stop_index, dist)
                 if stop_index > next_wp_index and dist <= begin_decelerating_distance:
                     target_velocity = stop_velocity
 
-            wp_vel = current_velocity
-            for i in range(len(final_waypoints)):
+                # If we're already stopped at an upcoming red light stay stopped
+                if current_velocity <= .0001:
+                    target_velocity = stop_velocity
 
-                ramped_vel = self.ramped_velocity(wp_vel, target_velocity, 1.0, ramp_rate)
+                for i in range(len(final_waypoints)):
+                    ramped_vel = self.ramped_velocity(wp_vel, target_velocity, 1.0, ramp_rate)
+                    self.set_waypoint_velocity(final_waypoints, i, ramped_vel)
+                    wp_vel = ramped_vel
 
-                self.set_waypoint_velocity(final_waypoints, i, ramped_vel)
-                wp_vel = ramped_vel
+            # Cruising / Driving
+            else:
+
+                for i in range(len(final_waypoints)):
+
+                    test = 1 + 1
+
+                    target_wp_vel = self.get_waypoint_velocity(final_waypoints[i])
+                    rospy.logwarn("cruise: %s", target_wp_vel)
+
+                    # ramped_vel = self.ramped_velocity(wp_vel, target_wp_velocity, 1.0, ramp_rate)
+
+                    ramped_vel = self.ramped_velocity(wp_vel, target_wp_vel, 1.0, ramp_rate)
+
+                    # only set velocity if its less than max already set in waypoint_loader
+                    if ramped_vel < target_wp_vel:
+                        self.set_waypoint_velocity(final_waypoints, i, ramped_vel)
+                    else:
+                        self.set_waypoint_velocity(final_waypoints, i, target_wp_vel)
+
+                    wp_vel = ramped_vel
 
             lane = Lane()
             lane.header.frame_id = '/world'
@@ -133,8 +161,9 @@ class WaypointUpdater(object):
             return v_prev + sign * step # take a step toward the target
 
     def waypoints_cb(self, waypoints):
+        self.base_waypoints = waypoints.waypoints
         self.waypoints = waypoints.waypoints
-        self.base_waypoints_sub.unregister()
+        # self.base_waypoints_sub.unregister()
 
     def traffic_cb(self, msg):
         self.upcoming_red_light = msg.data
