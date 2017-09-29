@@ -72,7 +72,7 @@ class WaypointUpdater(object):
 
             stop_velocity = -1
 
-            begin_decelerating_distance = 25.0
+            begin_decelerating_distance = 100.0
 
             current_velocity = 0
 
@@ -91,13 +91,13 @@ class WaypointUpdater(object):
                 next_wp = waypoints[next_wp_index]
                 # rospy.logwarn("next_wp_index: %s, car_x: %s, car_y: %s, wp_x: %s, wp_y: %s", next_wp_index, current_pose.position.x, current_pose.position.y, next_wp.pose.pose.position.x, next_wp.pose.pose.position.y)
 
-                # final_waypoints = []
-                # #Never modify self.waypoints, make a copy each time
-                # for i in range(LOOKAHEAD_WPS):
-                #     wp = waypoints[next_wp_index + i]
-                #     final_waypoints.append(copy.deepcopy(wp))
+                final_waypoints = []
+                #Never modify self.waypoints, make a copy each time
+                for i in range(LOOKAHEAD_WPS):
+                    wp = waypoints[next_wp_index + i]
+                    final_waypoints.append(copy.deepcopy(wp))
 
-                final_waypoints = waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS]
+                # final_waypoints = copy.deepcopy(waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS])
 
                 # ranges between 200 and 100 meters depending on track location
                 final_waypoints_distance = self.distance(waypoints, next_wp_index, next_wp_index + LOOKAHEAD_WPS)
@@ -129,8 +129,8 @@ class WaypointUpdater(object):
                     wp_vel = current_velocity
                     for i in range(len(final_waypoints)):
                         wp = final_waypoints[i]
-                        # target_vel = self.get_waypoint_velocity(wp)
-                        target_vel = go_velocity
+                        target_vel = self.get_waypoint_velocity(wp)
+                        # target_vel = go_velocity
                         ramped_vel = self.ramped_velocity(wp_vel, target_vel, 1.0, ramp_rate)
                         if ramped_vel < target_vel:
                             self.set_waypoint_velocity(final_waypoints, i, ramped_vel)

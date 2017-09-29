@@ -106,9 +106,9 @@ class SteeringController(object):
         # steer = yaw_steer + pi_steer
         # steer = pi_steer
         # steer = pid_steer - yaw_steer
-        # steer = yaw_steer
+        steer = yaw_steer
         # steer = (yaw_steer + pid_steer) / 2.0
 
-        steer = pid_steer
+        # steer = pid_steer
 
         return steer
