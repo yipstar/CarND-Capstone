@@ -25,18 +25,8 @@ class TwistController(object):
         self.previous_linear_velocity = 0.
 
         # Assumes we are braking from 10 m/s velocity down to 0 m/s in 5 seconds to acheive average deceleration of 2 m/s^2.
-        average_deceleration = 2
-        # 837.96251
-
-        self.brake_torque = self.vehicle_mass * average_deceleration * self.wheel_radius
-
-    def rad2deg(self, radians):
-	    degrees = 180 * radians / math.pi
-	    return degrees
-
-    def deg2rad(self, degrees):
-	    radians = math.pi * degrees / 180
-	    return radian
+        # average_deceleration = 2
+        # self.brake_torque = self.vehicle_mass * average_deceleration * self.wheel_radius
 
     def reset(self):
         self.steering_controller.reset()
@@ -55,46 +45,47 @@ class TwistController(object):
 
         self.previous_linear_velocity = current_linear_velocity
 
-
         steer = self.steering_controller.control(proposed_linear_velocity, proposed_angular_velocity, current_linear_velocity, final_waypoints, current_pose, dt)
 
-        # throttle = 0.
-        brake = 0.
-        brake2 = 0.
-        brake3 = 0.
+        velocity_error = proposed_linear_velocity - current_linear_velocity
 
-        velocity_cte = proposed_linear_velocity - current_linear_velocity
-        throttle = self.throttle_controller.step(velocity_cte, dt)
+        throttle = self.throttle_controller.step(velocity_error, dt)
+        rospy.logwarn("velocity error: %s throttle: %s", velocity_error, throttle)
 
-        throttle2 = self.throttle_percentage_for_velocity(proposed_linear_velocity)
+        # We should be about to stop or stopped, stay braking
+        if proposed_linear_velocity == 0.0:
+            brake = 80.0
+            throttle = 0.0
 
-        if throttle < 0:
-            brake = abs(throttle) + self.brake_deadband
+        # Probably breaking and not crusing so perform brake
+        elif velocity_error <= -0.3:
+
+            brake = abs(throttle)
             if brake > self.max_brake:
                 brake = self.max_brake
+            brake = brake * 100.0
+            throttle = 0.0
 
-            throttle = 0
+        # Crusing
+        else:
+            if throttle < 0:
+                throttle = 0
+            brake = 0
 
-        # rospy.logwarn("velocity_cte: %s, throttle: %s", velocity_cte, throttle)
-
-        # if(current_linear_velocity > proposed_linear_velocity):
-
-        #     # brake = 2000.
-        #     # brake2 = self.brake_torque
-        #     # brake3 = self.vehicle_mass * abs(accel) * self.wheel_radius
-
-        #     # Don't apply throttle if we are braking
-        #     throttle = 0.
-
-            # brake = 2
-
-        rospy.logwarn('proposed_vel: %s current_vel: %s vel_cte: %s', proposed_linear_velocity, current_linear_velocity, velocity_cte)
-
-        rospy.logwarn('throttle: %s brake: %s steer: %s accel: %s', throttle, brake, steer, accel)
+        # rospy.logwarn('throttle: %s brake: %s steer: %s accel: %s', throttle, brake, steer, accel)
 
         return throttle, brake, steer
 
     def throttle_percentage_for_velocity(self, target_velocity):
         return target_velocity / 150.0
+
+    def rad2deg(self, radians):
+	    degrees = 180 * radians / math.pi
+	    return degrees
+
+    def deg2rad(self, degrees):
+	    radians = math.pi * degrees / 180
+	    return radian
+
 
 

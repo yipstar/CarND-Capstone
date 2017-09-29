@@ -98,7 +98,7 @@ class SteeringController(object):
         # self.poly_pub.publish(msg)
 
         pid_steer = self.pid_steering_controller.step(cte, dt)
-        pi_steer = self.pi_steering_controller.step(cte, dt)
+        # pi_steer = self.pi_steering_controller.step(cte, dt)
 
         # rospy.logwarn("CTE: %s, yaw_steer: %s, pid_steer: %s, pi_steer: %s", cte, yaw_steer, pid_steer, pi_steer)
         # rospy.logwarn("CTE2: %s", cte2)
