@@ -50,116 +50,109 @@ class WaypointUpdater(object):
         self.time_prev = rospy.Time.now()
         self.previous_loop_time = rospy.get_rostime()
 
-        rospy.spin()
+        self.loop()
+
+    def loop(self):
+        # Run at 2 hz as mentioned in the project channel
+        rate = rospy.Rate(2)
+
+        while not rospy.is_shutdown():
+
+            time_now = rospy.Time.now()
+            dt = (time_now - self.time_prev).to_sec()
+            # rospy.logwarn("dt: %s", dt)
+            self.time_prev = time_now
+
+            # 10 MPH convert to mps
+            go_velocity = 10
+            go_velocity = go_velocity * 0.44704
+
+            # for testing faster around
+            # go_velocity = 10 # meters per second
+
+            stop_velocity = -1
+
+            begin_decelerating_distance = 25.0
+
+            current_velocity = 0
+
+            # assume go unless red traffic light
+            target_velocity = go_velocity
+
+            if self.current_velocity and self.waypoints and self.current_pose:
+                waypoints = self.waypoints
+                current_pose = self.current_pose
+                current_velocity = self.current_velocity.twist.linear.x
+
+                # ramp current velocity by 2/ms^2
+                ramp_rate = 4.0
+
+                next_wp_index = self.next_waypoint2(current_pose, waypoints)
+                next_wp = waypoints[next_wp_index]
+                # rospy.logwarn("next_wp_index: %s, car_x: %s, car_y: %s, wp_x: %s, wp_y: %s", next_wp_index, current_pose.position.x, current_pose.position.y, next_wp.pose.pose.position.x, next_wp.pose.pose.position.y)
+
+                # final_waypoints = []
+                # #Never modify self.waypoints, make a copy each time
+                # for i in range(LOOKAHEAD_WPS):
+                #     wp = waypoints[next_wp_index + i]
+                #     final_waypoints.append(copy.deepcopy(wp))
+
+                final_waypoints = waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS]
+
+                # ranges between 200 and 100 meters depending on track location
+                final_waypoints_distance = self.distance(waypoints, next_wp_index, next_wp_index + LOOKAHEAD_WPS)
+                # rospy.logwarn("final_waypoints distance: %s", final_waypoints_distan@ce)
+
+                dist = None
+                wp_offset = 0 # use to stop waypoints ahead of the light
+
+                # Stopping
+                if self.upcoming_red_light and self.upcoming_red_light != -1:
+
+                    stop_index = self.upcoming_red_light - wp_offset
+                    dist = self.distance(waypoints, next_wp_index, stop_index)
+
+                    if stop_index > next_wp_index and dist <= begin_decelerating_distance:
+                        # rospy.logwarn("upcoming_red_light_wp: %s, dist: %s", stop_index, dist)
+                        wp_vel = current_velocity
+
+                        for i in range(len(final_waypoints)):
+                            wp = final_waypoints[i]
+                            ramped_vel = self.ramped_velocity(wp_vel, 0, 1.0, ramp_rate)
+                            self.set_waypoint_velocity(final_waypoints, i, ramped_vel)
+                            new_wp_vel = self.get_waypoint_velocity(wp)
+                            # rospy.logwarn("stopping vel i: %s", new_wp_vel)
+                            wp_vel = new_wp_vel
+
+                # Cruising / Driving
+                else:
+                    wp_vel = current_velocity
+                    for i in range(len(final_waypoints)):
+                        wp = final_waypoints[i]
+                        # target_vel = self.get_waypoint_velocity(wp)
+                        target_vel = go_velocity
+                        ramped_vel = self.ramped_velocity(wp_vel, target_vel, 1.0, ramp_rate)
+                        if ramped_vel < target_vel:
+                            self.set_waypoint_velocity(final_waypoints, i, ramped_vel)
+                        else:
+                            self.set_waypoint_velocity(final_waypoints, i, target_vel)
+                        new_wp_vel = self.get_waypoint_velocity(wp)
+                        # rospy.logwarn("cruising vel i: %s target_vel: %s", new_wp_vel, target_vel)
+                        wp_vel = new_wp_vel
+
+                lane = Lane()
+                lane.header.frame_id = '/world'
+                lane.header.stamp = rospy.Time(0)
+                lane.waypoints = final_waypoints
+                self.final_waypoints_pub.publish(lane)
+
+            rate.sleep()
 
     def current_velocity_cb(self, msg):
         self.current_velocity = msg
 
     def pose_cb(self, msg):
-        waypoints = self.waypoints
-        current_pose = msg.pose
-
-        time_now = rospy.Time.now()
-        dt = (time_now - self.time_prev).to_sec()
-        # rospy.logwarn("dt: %s", dt)
-        self.time_prev = time_now
-
-        # 10 MPH convert to mps
-        go_velocity = 10
-        go_velocity = go_velocity * 0.44704
-
-        # for testing faster around
-        # go_velocity = 10 # meters per second
-
-        begin_decelerating_distance = 25.0
-
-        current_velocity = 0
-        if self.current_velocity:
-            current_velocity = self.current_velocity.twist.linear.x
-
-        stop_velocity = -1
-
-        # assume go unless red traffic light
-        target_velocity = go_velocity
-
-        # ramp current velocity by 2/ms^2
-        ramp_rate = 4.0
-
-        if (waypoints):
-
-            # next_wp_index = self.next_waypoint(current_pose, waypoints)
-            next_wp_index = self.next_waypoint2(current_pose, waypoints)
-            next_wp = waypoints[next_wp_index]
-            # rospy.logwarn("next_wp_index: %s, car_x: %s, car_y: %s, wp_x: %s, wp_y: %s", next_wp_index, current_pose.position.x, current_pose.position.y, next_wp.pose.pose.position.x, next_wp.pose.pose.position.y)
-
-            # final_waypoints = []
-            # #Never modify self.waypoints, make a copy each time
-            # for i in range(LOOKAHEAD_WPS):
-            #     wp = waypoints[next_wp_index + i]
-            #     final_waypoints.append(copy.deepcopy(wp))
-
-            final_waypoints = waypoints[next_wp_index:next_wp_index + LOOKAHEAD_WPS]
-
-            # ranges between 200 and 100 meters depending on track location
-            final_waypoints_distance = self.distance(waypoints, next_wp_index, next_wp_index + LOOKAHEAD_WPS)
-            # rospy.logwarn("final_waypoints distance: %s", final_waypoints_distan@ce)
-
-            dist = None
-            wp_offset = 0 # use to stop waypoints ahead of the light
-
-            # Stopping
-            if self.upcoming_red_light and self.upcoming_red_light != -1:
-
-                stop_index = self.upcoming_red_light - wp_offset
-                dist = self.distance(waypoints, next_wp_index, stop_index)
-
-                if stop_index > next_wp_index and dist <= begin_decelerating_distance:
-                # rospy.logwarn("upcoming_red_light_wp: %s, dist: %s", stop_index, dist)
-
-                    wp_vel = current_velocity
-
-                    for i in range(len(final_waypoints)):
-                        wp = final_waypoints[i]
-                        ramped_vel = self.ramped_velocity(wp_vel, 0, 1.0, ramp_rate)
-                        self.set_waypoint_velocity(final_waypoints, i, ramped_vel)
-                        new_wp_vel = self.get_waypoint_velocity(wp)
-                        # rospy.logwarn("stopping vel i: %s", new_wp_vel)
-                        wp_vel = new_wp_vel
-
-            #     if stop_index > next_wp_index and dist <= begin_decelerating_distance:
-            #         target_velocity = stop_velocity
-
-            #     # If we're already stopped at an upcoming red light stay stopped
-            #     if current_velocity <= .0001:
-            #         target_velocity = stop_velocity
-
-            #     for i in range(len(final_waypoints)):
-            #         ramped_vel = self.ramped_velocity(wp_vel, target_velocity, 1.0, ramp_rate)
-            #         self.set_waypoint_velocity(final_waypoints, i, ramped_vel)
-            #         wp_vel = ramped_vel
-
-            # # Cruising / Driving
-            else:
-
-                wp_vel = current_velocity
-                for i in range(len(final_waypoints)):
-                    wp = final_waypoints[i]
-                    # target_vel = self.get_waypoint_velocity(wp)
-                    target_vel = go_velocity
-                    ramped_vel = self.ramped_velocity(wp_vel, target_vel, 1.0, ramp_rate)
-                    if ramped_vel < target_vel:
-                        self.set_waypoint_velocity(final_waypoints, i, ramped_vel)
-                    else:
-                        self.set_waypoint_velocity(final_waypoints, i, target_vel)
-                    new_wp_vel = self.get_waypoint_velocity(wp)
-                    # rospy.logwarn("cruising vel i: %s target_vel: %s", new_wp_vel, target_vel)
-                    wp_vel = new_wp_vel
-
-            lane = Lane()
-            lane.header.frame_id = '/world'
-            lane.header.stamp = rospy.Time(0)
-            lane.waypoints = final_waypoints
-            self.final_waypoints_pub.publish(lane)
+        self.current_pose = msg.pose
 
     def ramped_velocity(self, v_prev, v_target, dt, ramp_rate):
         step = ramp_rate * dt

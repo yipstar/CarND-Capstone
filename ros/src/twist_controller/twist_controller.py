@@ -58,7 +58,7 @@ class TwistController(object):
             throttle = 0.0
 
         # Probably breaking and not crusing so perform brake
-        elif velocity_error <= -0.3:
+        elif velocity_error <= -0.6:
 
             brake = abs(throttle)
             if brake > self.max_brake:
